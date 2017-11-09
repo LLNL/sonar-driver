@@ -1,0 +1,52 @@
+#!/usr/bin/env python
+
+import sh
+import argparse
+import avro
+
+
+def avro_schema_from_file(filename):
+    """ Read in an Avro file and generate the schema """
+
+    with open(filename, 'r') as f:
+        return avro.schema.parse(f.read())
+
+
+def parse_args():
+    """ Parse arguments """
+
+    parser = argparse.ArgumentParser(
+            description="creates a Kafka ingestion file source for a Cassandra table, "
+                        "creating the table if it does not yet exist.",
+            formatter_class=argparse.RawTextHelpFormatter)
+
+    parser.add_argument('-i', '--ingest-file', required=False,
+            help="file to use as ingestion point, defaults to <table>.kafka")
+    parser.add_argument('-p', '--primary_key', type=str, required=False,
+            help="one or more primary keys, comma-separated, no spaces."
+                "\nNOTE: this argument is required if Cassandra table is not yet created"
+                "\nexamples:"
+                "\n    primary_key"
+                "\n    primary_key1,primary_key2")
+    parser.add_argument('-c', '--cluster_key', type=str, required=False,
+            help="one or more cluster keys, comma-separated, no spaces"
+                 "\nexamples:"
+                 "\n   cluster_key"
+                 "\n   cluster_key1,cluster_key2")
+
+    parser.add_argument('avro_schema_file', help="Avro schema file")
+    parser.add_argument('keyspace', type=str, help="Cassandra keyspace to ingest into")
+    parser.add_argument('table', type=str, help="Cassandra table to ingest into")
+
+    return parser.parse_args()
+
+
+def main():
+    """ Main entrypoint """
+
+    args = parse_args()
+
+    print(args)
+
+if __name__ == '__main__':
+    main()
