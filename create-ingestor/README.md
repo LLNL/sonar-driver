@@ -63,3 +63,4 @@ README.md  create-ingestor*  idstr.avsc  test.idstr.kafka
 - [ ] Validate Avro data entries in FileStreamSource, drop if invalid
 - [ ] Use deployed Kafka instead of locally running instance on localhost
 - [ ] Allow user-specified Kafka server location
+- [ ] SECURITY
