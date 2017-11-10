@@ -46,9 +46,9 @@ Starting kafka-rest
 kafka-rest is [UP]
 Starting connect
 connect is [UP]
-(sonar11):sonar-user-tools$ ./create_ingestor -d idstr.avsc test idstr
+(sonar11):sonar-user-tools$ ./create_ingestor idstr.avsc test idstr
 (sonar11):sonar-user-tools$ ls
-README.md  create_ingestor*  idstr.avsc  idstr.avsc.line  test.idstr.kafka
+README.md  create_ingestor*  idstr.avsc  test.idstr.kafka
 (sonar11):sonar-user-tools$ echo '{"id":80, "str": "eighty"}' >> test.idstr.kafka
 (sonar11):sonar-user-tools$ cqlsh --cqlversion="3.4.0" -u cassandra -p cassandra -e "SELECT * FROM test.idstr"
 
