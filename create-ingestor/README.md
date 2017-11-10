@@ -67,7 +67,7 @@ README.md  create-ingestor*  idstr.avsc  test.idstr.kafka
 
 Create an ingestion point for a non-existing Cassandra table, thus creating the table (requires primary key definition):
 
-```
+```bash
 (sonar11):sonar-user-tools$ ./create-ingestor idstr.avsc test idstr --primary-key id
 (sonar11):sonar-user-tools$ ls
 README.md  create-ingestor*  idstr.avsc  test.idstr.kafka  test.idstr2.kafka
