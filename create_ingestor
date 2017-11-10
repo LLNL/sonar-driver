@@ -18,11 +18,11 @@ def avro_schema_from_file(filename):
         return schema.parse(f.read())
 
 
-def create_file_source(connector_name, topic_name, ingest_filename, avro_schema):
+def create_file_source(topic_name, ingest_filename, avro_schema):
     """ Create a Cassandra sink connector configuration """
 
     return {
-        "name" : connector_name,
+        "name" : "avro-file-source-" + topic_name,
         "config" : {
             "topic" : topic_name,
             "connector.class" : "FileStreamSourceConnector",
@@ -30,16 +30,16 @@ def create_file_source(connector_name, topic_name, ingest_filename, avro_schema)
             "file" : ingest_filename,
             "value.converter" : "io.confluent.connect.avro.AvroConverter",
             "value.converter.schema.registry.url" : "http://localhost:8081",
-            "value.schema" : avro_schema.to_json()
+            "value.schema" : json.dumps(avro_schema.to_json())
         }
     }
 
 
-def create_cassandra_sink(connector_name, topic_name, keyspace, table):
+def create_cassandra_sink(topic_name, keyspace, table):
     """ Create a file source connector configuration """
 
     return {
-        "name" : connector_name,
+        "name" : "avro-cassandra-sink-" + topic_name,
         "config" : {
             "topics" : topic_name,
             "connector.class" : "com.datamountaineer.streamreactor.connect.cassandra.sink.CassandraSinkConnector",
@@ -59,16 +59,14 @@ def create_connectors(args):
 
     avro_schema = avro_schema_from_file(args.avro_schema_file)
 
-    keytable = args.keyspace + "-" + args.table
-    connector_name = "avro-filesource-" + keytable
-    topic_name = "avro-filesource-" + keytable
-    ingest_file = args.ingest_file if args.ingest_file else keytable + ".kafka" 
+    topic_name = args.keyspace + "." + args.table
+    ingest_file = args.ingest_file if args.ingest_file else topic_name + ".kafka" 
 
     current_dir = os.getcwd()
     ingest_file_fullpath = os.path.join(current_dir, ingest_file)
 
-    file_source = create_file_source(connector_name, topic_name, ingest_file_fullpath, avro_schema)
-    cassandra_sink = create_cassandra_sink(connector_name, topic_name, args.keyspace, args.table)
+    file_source = create_file_source(topic_name, ingest_file_fullpath, avro_schema)
+    cassandra_sink = create_cassandra_sink(topic_name, args.keyspace, args.table)
 
     return (file_source, cassandra_sink)
 
@@ -129,7 +127,7 @@ def main():
             fs.write(json.dumps(file_source, indent=4))
 
         with open ('cassandra_sink.json', 'w') as cs:
-            cs.write(json.dumps(file_source, indent=4))
+            cs.write(json.dumps(cassandra_sink, indent=4))
 
     register_connectors(file_source, cassandra_sink)
 
