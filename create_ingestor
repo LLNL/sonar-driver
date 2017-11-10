@@ -4,8 +4,11 @@ import sh
 import os
 import argparse
 import json
+import requests
 
 from avro import schema
+
+DEBUG=False
 
 
 def avro_schema_from_file(filename):
@@ -13,35 +16,6 @@ def avro_schema_from_file(filename):
 
     with open(filename, 'r') as f:
         return schema.parse(f.read())
-
-
-def parse_args():
-    """ Parse arguments """
-
-    parser = argparse.ArgumentParser(
-            description="creates a Kafka ingestion file source for a Cassandra table, "
-                        "creating the table if it does not yet exist.",
-            formatter_class=argparse.RawTextHelpFormatter)
-
-    parser.add_argument('-i', '--ingest-file', required=False,
-            help="file to use as ingestion point, defaults to <table>.kafka")
-    parser.add_argument('-p', '--primary_key', type=str, required=False,
-            help="one or more primary keys, comma-separated, no spaces."
-                "\nNOTE: this argument is required if Cassandra table is not yet created"
-                "\nexamples:"
-                "\n    primary_key"
-                "\n    primary_key1,primary_key2")
-    parser.add_argument('-c', '--cluster_key', type=str, required=False,
-            help="one or more cluster keys, comma-separated, no spaces"
-                 "\nexamples:"
-                 "\n   cluster_key"
-                 "\n   cluster_key1,cluster_key2")
-
-    parser.add_argument('avro_schema_file', help="Avro schema file")
-    parser.add_argument('keyspace', type=str, help="Cassandra keyspace to ingest into")
-    parser.add_argument('table', type=str, help="Cassandra table to ingest into")
-
-    return parser.parse_args()
 
 
 def create_file_source(connector_name, topic_name, ingest_filename, avro_schema):
@@ -80,10 +54,8 @@ def create_cassandra_sink(connector_name, topic_name, keyspace, table):
     }
 
 
-def main():
-    """ Main entrypoint """
-
-    args = parse_args()
+def create_connectors(args):
+    """ Create file source and Cassandra sink configurations """ 
 
     avro_schema = avro_schema_from_file(args.avro_schema_file)
 
@@ -98,11 +70,69 @@ def main():
     file_source = create_file_source(connector_name, topic_name, ingest_file_fullpath, avro_schema)
     cassandra_sink = create_cassandra_sink(connector_name, topic_name, args.keyspace, args.table)
 
-    file_source_json = json.dumps(file_source, indent=4)
-    cassandra_sink_json = json.dumps(cassandra_sink, indent=4)
+    return (file_source, cassandra_sink)
 
-    print(file_source_json)
-    print(cassandra_sink_json)
+
+def register_connectors(*connectors):
+    """ Provided a set of connector configs, registers them in a running Kafka connect instance """
+
+    for connector in connectors:
+        ret = requests.post("http://localhost:8083/connectors", json=connector)
+        if DEBUG:
+            print(ret.json())
+
+
+def parse_args():
+    """ Parse arguments """
+
+    parser = argparse.ArgumentParser(
+            description="creates a Kafka ingestion file source for a Cassandra table, "
+                        "creating the table if it does not yet exist.",
+            formatter_class=argparse.RawTextHelpFormatter)
+
+    parser.add_argument('-d', '--debug', action="store_true", required=False,
+            help="debug this script")
+    parser.add_argument('-i', '--ingest-file', required=False,
+            help="file to use as ingestion point, defaults to <table>.kafka")
+    parser.add_argument('-p', '--primary_key', type=str, required=False,
+            help="one or more primary keys, comma-separated, no spaces."
+                "\nNOTE: this argument is required if Cassandra table is not yet created"
+                "\nexamples:"
+                "\n    primary_key"
+                "\n    primary_key1,primary_key2")
+    parser.add_argument('-c', '--cluster_key', type=str, required=False,
+            help="one or more cluster keys, comma-separated, no spaces"
+                 "\nexamples:"
+                 "\n   cluster_key"
+                 "\n   cluster_key1,cluster_key2")
+
+    parser.add_argument('avro_schema_file', help="Avro schema file")
+    parser.add_argument('keyspace', type=str, help="Cassandra keyspace to ingest into")
+    parser.add_argument('table', type=str, help="Cassandra table to ingest into")
+
+    args = parser.parse_args()
+
+    DEBUG = args.debug
+
+    return args
+
+
+def main():
+    """ Main entrypoint """
+
+    args = parse_args()
+
+    (file_source, cassandra_sink) = create_connectors(args)
+
+    if DEBUG:
+        with open('file_source.json', 'w') as fs:
+            fs.write(json.dumps(file_source, indent=4))
+
+        with open ('cassandra_sink.json', 'w') as cs:
+            cs.write(json.dumps(file_source, indent=4))
+
+    register_connectors(file_source, cassandra_sink)
+
 
 if __name__ == '__main__':
     main()
