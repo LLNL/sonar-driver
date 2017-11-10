@@ -2,14 +2,15 @@
 
 import sh
 import argparse
-import avro
+
+from avro import schema
 
 
 def avro_schema_from_file(filename):
     """ Read in an Avro file and generate the schema """
 
     with open(filename, 'r') as f:
-        return avro.schema.parse(f.read())
+        return schema.parse(f.read())
 
 
 def parse_args():
@@ -45,6 +46,8 @@ def main():
     """ Main entrypoint """
 
     args = parse_args()
+
+    schema = avro_schema_from_file(args.avro_schema_file)
 
     print(args)
 
