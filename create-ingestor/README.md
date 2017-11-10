@@ -1,9 +1,9 @@
-# create_ingestor
+# create-ingestor
 
 ## Usage
 
 ```bash
-usage: create_ingestor [-h] [-d] [-i INGEST_FILE] [-p PRIMARY_KEY]
+usage: create-ingestor [-h] [-d] [-i INGEST_FILE] [-p PRIMARY_KEY]
                        [-c CLUSTER_KEY]
                        avro_schema_file keyspace table
 
@@ -46,9 +46,9 @@ Starting kafka-rest
 kafka-rest is [UP]
 Starting connect
 connect is [UP]
-(sonar11):sonar-user-tools$ ./create_ingestor idstr.avsc test idstr
+(sonar11):sonar-user-tools$ ./create-ingestor idstr.avsc test idstr
 (sonar11):sonar-user-tools$ ls
-README.md  create_ingestor*  idstr.avsc  test.idstr.kafka
+README.md  create-ingestor*  idstr.avsc  test.idstr.kafka
 (sonar11):sonar-user-tools$ echo '{"id":80, "str": "eighty"}' >> test.idstr.kafka
 (sonar11):sonar-user-tools$ cqlsh --cqlversion="3.4.0" -u cassandra -p cassandra -e "SELECT * FROM test.idstr"
 
