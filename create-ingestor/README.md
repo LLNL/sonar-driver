@@ -1,5 +1,7 @@
 # create_ingestor
 
+## Usage
+
 ```bash
 usage: create_ingestor [-h] [-d] [-i INGEST_FILE] [-p PRIMARY_KEY]
                        [-c CLUSTER_KEY]
@@ -29,3 +31,35 @@ optional arguments:
                            cluster_key
                            cluster_key1,cluster_key2
 ```
+
+## Example Usage
+
+```bash
+(sonar11):create-ingestor$ confluent start connect
+Starting zookeeper
+zookeeper is [UP]
+Starting kafka
+kafka is [UP]
+Starting schema-registry
+schema-registry is [UP]
+Starting kafka-rest
+kafka-rest is [UP]
+Starting connect
+connect is [UP]
+(sonar11):sonar-user-tools$ ./create_ingestor -d idstr.avsc test idstr
+(sonar11):sonar-user-tools$ ls
+README.md  create_ingestor*  idstr.avsc  idstr.avsc.line  test.idstr.kafka
+(sonar11):sonar-user-tools$ echo '{"id":80, "str": "eighty"}' >> test.idstr.kafka
+(sonar11):sonar-user-tools$ cqlsh --cqlversion="3.4.0" -u cassandra -p cassandra -e "SELECT * FROM test.idstr"
+
+ id | str
+----+--------
+ 80 | eighty
+```
+
+## TODO
+
+- [ ] Create Cassandra table if they do not exist
+- [ ] Validate Avro data entries in FileStreamSource, drop if invalid
+- [ ] Use deployed Kafka instead of locally running instance on localhost
+- [ ] Allow user-specified Kafka server location
