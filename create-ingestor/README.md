@@ -59,7 +59,7 @@ README.md  create-ingestor*  idstr.avsc  test.idstr.kafka
 
 ## TODO
 
-- [ ] Create Cassandra table if they do not exist
+- [X] Create Cassandra table if they do not exist
 - [ ] Validate Avro data entries in FileStreamSource, drop if invalid
 - [ ] Use deployed Kafka instead of locally running instance on localhost
 - [ ] Allow user-specified Kafka server location
