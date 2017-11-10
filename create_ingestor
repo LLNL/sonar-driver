@@ -54,6 +54,15 @@ def create_cassandra_sink(topic_name, keyspace, table):
     }
 
 
+def create_file_if_nonexistent(filename):
+    """ Create an empty file if the specified filename does not exist """
+
+    try:
+        f = open(filename, 'r')
+    except IOError:
+        f = open(filename, 'w')
+
+
 def create_connectors(args):
     """ Create file source and Cassandra sink configurations """ 
 
@@ -64,6 +73,8 @@ def create_connectors(args):
 
     current_dir = os.getcwd()
     ingest_file_fullpath = os.path.join(current_dir, ingest_file)
+
+    create_file_if_nonexistent(ingest_file_fullpath)
 
     file_source = create_file_source(topic_name, ingest_file_fullpath, avro_schema)
     cassandra_sink = create_cassandra_sink(topic_name, args.keyspace, args.table)
