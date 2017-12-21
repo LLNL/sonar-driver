@@ -62,7 +62,7 @@ Start up Cassandra:
 1. Create an ingestion point for an existing Cassandra table
 
 ```bash
-(localhost):sonar-user-tools$ ./create-ingestor idstr.avsc test idstr
+(localhost):sonar-user-tools$ ./create-ingestor idstr.avsc test idstr -u user -p password
 (localhost):sonar-user-tools$ ls
 README.md  create-ingestor*  idstr.avsc  test.idstr.kafka
 (localhost):sonar-user-tools$ echo '{"id":80, "str": "eighty"}' >> test.idstr.kafka
@@ -76,7 +76,7 @@ README.md  create-ingestor*  idstr.avsc  test.idstr.kafka
 2. Create an ingestion point for a non-existing Cassandra table, thus creating the table (requires primary key definition):
 
 ```bash
-(localhost):sonar-user-tools$ ./create-ingestor idstr.avsc test idstr --primary-key id
+(localhost):sonar-user-tools$ ./create-ingestor idstr.avsc test idstr --primary-key id -u user -p password
 (localhost):sonar-user-tools$ ls
 README.md  create-ingestor*  idstr.avsc  test.idstr.kafka  test.idstr2.kafka
 (localhost):sonar-user-tools$ echo '{"id":80, "str": "eighty"}' >> test.idstr2.kafka
