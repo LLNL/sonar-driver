@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+import sys
 import os
 import argparse
 import json
@@ -14,6 +16,10 @@ from pygments import highlight, lexers, formatters
 
 DEBUG=False
 DRY=False
+CASSANDRA_SINK_CLASS="com.datamountaineer.streamreactor.connect.cassandra.sink.CassandraSinkConnector"
+
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
 
 
 def pretty_print(title, data, lexer=lexers.JsonLexer()):
@@ -34,6 +40,33 @@ def avro_schema_from_file(filename):
         return schema.parse(f.read())
 
 
+def check_for_cassandra_sink_plugin():
+    """ Request a list of connector plugins and check to make sure the Cassandra Sink is present """
+
+    s = requests.Session()
+
+    request = requests.Request('GET', "http://localhost:8083/connector-plugins")
+    prepared_request = request.prepare()
+
+    if DRY or DEBUG:
+        request_json = {
+            "method" : prepared_request.method,
+            "url" : prepared_request.url,
+            "headers" : dict(prepared_request.headers),
+            "body" : prepared_request.body
+        }
+        pretty_print("Connector HTTP Request", request_json)
+    if not DRY:
+        try:
+            connector_plugins = s.send(prepared_request).json()
+        except requests.exceptions.ConnectionError as e:
+            raise Exception("Unable to connect to Kafka Connect: '{}'".format(e))
+        if DEBUG:
+            pretty_print("Connector HTTP Response", connector_plugins)
+        if not any(plugin['class'] == CASSANDRA_SINK_CLASS for plugin in connector_plugins):
+            raise Exception("Cassandra Sink not available: '{}'".format(CASSANDRA_SINK_CLASS))
+
+
 def create_file_source(topic_name, ingest_filename, avro_schema):
     """ Create a Cassandra sink connector configuration """
 
@@ -51,7 +84,7 @@ def create_file_source(topic_name, ingest_filename, avro_schema):
     }
 
 
-def create_cassandra_sink(topic_name, keyspace, table):
+def create_cassandra_sink(host, port, topic_name, keyspace, table, username, password):
     """ Create a file source connector configuration """
 
     return {
@@ -61,11 +94,11 @@ def create_cassandra_sink(topic_name, keyspace, table):
             "connector.class" : "com.datamountaineer.streamreactor.connect.cassandra.sink.CassandraSinkConnector",
             "tasks.max" : "1",
             "connect.cassandra.kcql" : "INSERT INTO " + table + " SELECT * FROM " + topic_name,
-            "connect.cassandra.contact.points" : "sonar11",
-            "connect.cassandra.port" : "9042",
+            "connect.cassandra.contact.points" : host,
+            "connect.cassandra.port" : port,
             "connect.cassandra.key.space" : keyspace,
-            "connect.cassandra.username" : "cassandra",
-            "connect.cassandra.password" : "cassandra"
+            "connect.cassandra.username" : username,
+            "connect.cassandra.password" : password
         }
     }
 
@@ -91,39 +124,56 @@ def avro2cass(dtype):
     return dtype
 
 
-def create_primary_key_clause(primary_key, cluster_key):
+def create_primary_key_clause(partition_key, cluster_key):
     """ Create the CQL clause for the primary key in a table being created """
 
     if cluster_key:
-        return "(({:s}),{:s})".format(primary_key, cluster_key)
-    return "(({:s}))".format(primary_key)
+        return "(({}),{})".format(partition_key, cluster_key)
+    return "(({}))".format(partition_key)
 
 
-def create_table_if_nonexistent(keyspace, table, avro_schema, primary_key, cluster_key):
+def create_table_if_nonexistent(host, user, password, keyspace, table, avro_schema, partition_key, cluster_key):
     """ Create an empty Cassandra table if the specified table does not exist """
 
-    auth_provider = PlainTextAuthProvider(username='cassandra', password='cassandra')
-    cluster = Cluster(['sonar11'], auth_provider=auth_provider)
-    session = cluster.connect()
+    if DEBUG:
+        print("Connecting to Cassandra host '{}' with username '{}' and password '{}'".format(host, user, password))
 
-    exists_query = "SELECT table_name FROM system_schema.tables WHERE keyspace_name='{:s}' AND table_name='{:s}'".format(keyspace, table)
+    auth_provider = PlainTextAuthProvider(username=user, password=password)
+    cluster = Cluster([host], auth_provider=auth_provider)
+
+    try:
+        session = cluster.connect()
+    except NoHostAvailableException:
+        raise Exception("Cassandra host '{}' unavailable!".format(host))
+    except UnauthorizedException:
+        raise Exception("Cassandra user '{}' unauthorized to connect to host '{}'!".format(user,host))
+
+    exists_query = "SELECT table_name FROM system_schema.tables WHERE keyspace_name='{}' AND table_name='{}'".format(keyspace, table)
 
     if DEBUG:
         pretty_print("Check for Cassandra table CQL", exists_query, lexers.SqlLexer())
 
-    results = session.execute(exists_query)
+    try:
+        results = session.execute(exists_query)
+    except UnauthorizedException:
+        raise Exception("Cassandra user '{}' unauthorized to view system_schema.tables on host '{}'!".format(user,host))
 
     if DEBUG:
         pretty_print("Query results", results.current_rows)
 
     if not results.current_rows:
-        print("Table {:s}.{:s} does not exist, creating it now".format(keyspace, table))
+
+        if partition_key is None:
+            raise Exception("Table {}.{} does not exist, you must specify a partition key and optionally a cluster key to create it!".format(keyspace, table))
+
+        print("Table {}.{} does not exist, creating it now".format(keyspace, table))
+
 
         avro_json = avro_schema.to_json()
         columns_clause = ','.join(map(lambda f: f['name'] + ' ' + avro2cass(f['type']), avro_json['fields']))
-        primary_key_clause = create_primary_key_clause(primary_key, cluster_key)
+        primary_key_clause = create_primary_key_clause(partition_key, cluster_key)
 
-        create_query = "CREATE TABLE {:s}.{:s} ({:s}, PRIMARY KEY {:s})".format(keyspace, table, columns_clause, primary_key_clause)
+        create_query = "CREATE TABLE {}.{} ({}, PRIMARY KEY {})".format(keyspace, table, columns_clause, primary_key_clause)
 
         if DEBUG or DRY:
             pretty_print("Create table CQL", create_query, lexers.SqlLexer())
@@ -146,10 +196,12 @@ def create_connectors(args):
     ingest_file_fullpath = os.path.join(current_dir, ingest_file)
 
     create_file_if_nonexistent(ingest_file_fullpath)
-    create_table_if_nonexistent(args.keyspace, args.table, avro_schema, args.primary_key, args.cluster_key)
+    create_table_if_nonexistent(args.cassandra_host, args.cassandra_username, args.cassandra_password, 
+            args.keyspace, args.table, avro_schema, args.partition_key, args.cluster_key)
 
     file_source = create_file_source(topic_name, ingest_file_fullpath, avro_schema)
-    cassandra_sink = create_cassandra_sink(topic_name, args.keyspace, args.table)
+    cassandra_sink = create_cassandra_sink(args.cassandra_host, args.cassandra_port,
+            topic_name, args.keyspace, args.table, args.cassandra_username, args.cassandra_password)
 
     if DEBUG:
         pretty_print("Avro file source config", file_source)
@@ -179,6 +231,8 @@ def register_connectors(*connectors):
             response = s.send(prepared_request)
             if DEBUG:
                 pretty_print("Connector HTTP Response", response.json())
+            if (response.status_code != 201):
+                raise Exception("Error (status code {}) creating connector! Run with -g/--debug to see server response".format(response.status_code))
 
 
 def parse_args():
@@ -195,13 +249,21 @@ def parse_args():
             help="debug this script")
     parser.add_argument('-i', '--ingest-file', required=False,
             help="file to use as ingestion point, defaults to <table>.kafka")
-    parser.add_argument('-p', '--primary-key', type=str, required=False,
-            help="one or more primary keys, comma-separated, no spaces."
+    parser.add_argument('-c', '--cassandra-host', default="localhost", required=False,
+            help="Cassandra host to connect to (default localhost)")
+    parser.add_argument('-cp', '--cassandra-port', default="9042", required=False,
+            help="Cassandra port to connect to (default 9042)")
+    parser.add_argument('-u', '--cassandra-username', required=True,
+            help="Cassandra username to ingest with (REQUIRED)")
+    parser.add_argument('-p', '--cassandra-password', required=True,
+            help="Cassandra password to authenticate with (REQUIRED)")
+    parser.add_argument('-pk', '--partition-key', type=str, required=False,
+            help="one or more partition keys, comma-separated, no spaces."
                  "\nNOTE: this argument is required if Cassandra table is not yet created"
                  "\nexamples:"
-                 "\n    primary_key"
-                 "\n    primary_key1,primary_key2")
-    parser.add_argument('-c', '--cluster-key', type=str, required=False,
+                 "\n    partition_key"
+                 "\n    partition_key1,partition_key2")
+    parser.add_argument('-ck', '--cluster-key', type=str, required=False,
             help="one or more cluster keys, comma-separated, no spaces"
                  "\nexamples:"
                  "\n   cluster_key"
@@ -230,9 +292,13 @@ def main():
 
     args = parse_args()
 
-    (file_source, cassandra_sink) = create_connectors(args)
-
-    register_connectors(file_source, cassandra_sink)
+    try:
+        check_for_cassandra_sink_plugin()
+        (file_source, cassandra_sink) = create_connectors(args)
+        register_connectors(file_source, cassandra_sink)
+    except Exception as e:
+        eprint(e.args[0])
+        return 1
 
 
 if __name__ == '__main__':
