@@ -1,14 +1,14 @@
 # create-ingestor
 
+## Quick Start Guide
+
+See [quickstart.md](./quickstart.md)
+
 ## Prerequisites
 
 * Python3
 
 * Python dependencies listed in [requirements.txt](./requirements.txt)
-
-## Quick Start Guide
-
-See [quickstart.md](./quickstart.md)
 
 ## Usage
 
