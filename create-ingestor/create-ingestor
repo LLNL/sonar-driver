@@ -17,6 +17,8 @@ from pygments import highlight, lexers, formatters
 DEBUG=False
 DRY=False
 CASSANDRA_SINK_CLASS="com.datamountaineer.streamreactor.connect.cassandra.sink.CassandraSinkConnector"
+DIRECTORY_SOURCE_CLASS="gov.llnl.sonar.kafka.connectors.DirectorySourceConnector"
+
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
@@ -40,12 +42,12 @@ def avro_schema_from_file(filename):
         return schema.parse(f.read())
 
 
-def check_for_cassandra_sink_plugin():
+def check_for_cassandra_sink_plugin(args):
     """ Request a list of connector plugins and check to make sure the Cassandra Sink is present """
 
     s = requests.Session()
 
-    request = requests.Request('GET', "http://localhost:8083/connector-plugins")
+    request = requests.Request('GET', args.kafka_rest_url + ":" + args.kafka_rest_port + "/connector-plugins")
     prepared_request = request.prepare()
 
     if DRY or DEBUG:
@@ -67,49 +69,47 @@ def check_for_cassandra_sink_plugin():
             raise Exception("Cassandra Sink not available: '{}'".format(CASSANDRA_SINK_CLASS))
 
 
-def create_file_source(topic_name, ingest_filename, avro_schema):
+def create_directory_source(topic_name, ingest_dirname, avro_schema):
     """ Create a Cassandra sink connector configuration """
 
     return {
-        "name" : "avro-file-source-" + topic_name,
+        "name" : "sonar-directory-source-" + topic_name,
         "config" : {
             "topic" : topic_name,
-            "connector.class" : "FileStreamSourceConnector",
+            "connector.class" : DIRECTORY_SOURCE_CLASS,
             "tasks.max" : "1",
-            "file" : ingest_filename,
-            "value.converter" : "io.confluent.connect.avro.AvroConverter",
-            "value.converter.schema.registry.url" : "http://localhost:8081",
-            "value.schema" : json.dumps(avro_schema.to_json())
+            "dirname" : ingest_dirname,
+            "format" : "json",
+            "format_options" : "",
+            "avro.schema" : json.dumps(avro_schema.to_json())
         }
     }
 
 
-def create_cassandra_sink(host, port, topic_name, keyspace, table, username, password):
+def create_cassandra_sink(host, port, topic_name, keyspace, table, username, password_file):
     """ Create a file source connector configuration """
 
     return {
         "name" : "avro-cassandra-sink-" + topic_name,
         "config" : {
             "topics" : topic_name,
-            "connector.class" : "com.datamountaineer.streamreactor.connect.cassandra.sink.CassandraSinkConnector",
+            "connector.class" : CASSANDRA_SINK_CLASS,
             "tasks.max" : "1",
             "connect.cassandra.kcql" : "INSERT INTO " + table + " SELECT * FROM " + topic_name,
             "connect.cassandra.contact.points" : host,
             "connect.cassandra.port" : port,
             "connect.cassandra.key.space" : keyspace,
             "connect.cassandra.username" : username,
-            "connect.cassandra.password" : password
+            "connect.cassandra.password.file" : password_file
         }
     }
 
 
-def create_file_if_nonexistent(filename):
-    """ Create an empty file if the specified filename does not exist """
+def create_dir_if_nonexistent(dirname):
+    """ Create an empty directory if the specified dirname does not exist """
 
-    try:
-        f = open(filename, 'r')
-    except IOError:
-        f = open(filename, 'w')
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
 
 AVRO_CASSANDRA_TYPEMAP = {
@@ -132,11 +132,14 @@ def create_primary_key_clause(partition_key, cluster_key):
     return "(({}))".format(partition_key)
 
 
-def create_table_if_nonexistent(host, user, password, keyspace, table, avro_schema, partition_key, cluster_key):
+def create_table_if_nonexistent(host, user, password_file, keyspace, table, avro_schema, partition_key, cluster_key):
     """ Create an empty Cassandra table if the specified table does not exist """
 
     if DEBUG:
-        print("Connecting to Cassandra host '{}' with username '{}' and password '{}'".format(host, user, password))
+        print("Connecting to Cassandra host '{}' with username '{}' and password file '{}'".format(host, user, password_file))
+
+    with open(password_file, 'r') as pf:
+        password=myfile.read()
 
     auth_provider = PlainTextAuthProvider(username=user, password=password)
     cluster = Cluster([host], auth_provider=auth_provider)
@@ -190,33 +193,33 @@ def create_connectors(args):
         pretty_print("Avro schema", avro_schema.to_json())
 
     topic_name = args.keyspace + "." + args.table
-    ingest_file = args.ingest_file if args.ingest_file else topic_name + ".kafka" 
+    ingest_dir = args.ingest_dir if args.ingest_dir else topic_name + ".kafka" 
 
     current_dir = os.getcwd()
-    ingest_file_fullpath = os.path.join(current_dir, ingest_file)
+    ingest_dir_fullpath = os.path.join(current_dir, ingest_dir)
 
-    create_file_if_nonexistent(ingest_file_fullpath)
-    create_table_if_nonexistent(args.cassandra_host, args.cassandra_username, args.cassandra_password, 
-            args.keyspace, args.table, avro_schema, args.partition_key, args.cluster_key)
+    create_dir_if_nonexistent(ingest_dir_fullpath)
+    create_table_if_nonexistent(args.cassandra_host, args.cassandra_username, args.cassandra_password_file, 
+            args.keyspace, args.table, args.avro_schema, args.partition_key, args.cluster_key)
 
-    file_source = create_file_source(topic_name, ingest_file_fullpath, avro_schema)
+    directory_source = create_directory_source(topic_name, ingest_dir_fullpath, avro_schema_file)
     cassandra_sink = create_cassandra_sink(args.cassandra_host, args.cassandra_port,
-            topic_name, args.keyspace, args.table, args.cassandra_username, args.cassandra_password)
+            topic_name, args.keyspace, args.table, args.cassandra_username, args.cassandra_password_file)
 
     if DEBUG:
-        pretty_print("Avro file source config", file_source)
+        pretty_print("Avro file source config", directory_source)
         pretty_print("Cassandra sink config", cassandra_sink)
 
-    return (file_source, cassandra_sink)
+    return (directory_source, cassandra_sink)
 
 
-def register_connectors(*connectors):
+def register_connectors(args, *connectors):
     """ Provided a set of connector configs, registers them in a running Kafka connect instance """
 
     s = requests.Session()
 
     for connector in connectors:
-        request = requests.Request('POST', "http://localhost:8083/connectors", json=connector)
+        request = requests.Request('POST', args.kafka_rest_url + ":" + args.kafka_rest_port + "/connectors", json=connector)
         prepared_request = request.prepare()
 
         if DRY or DEBUG:
@@ -249,14 +252,18 @@ def parse_args():
             help="debug this script")
     parser.add_argument('-i', '--ingest-file', required=False,
             help="file to use as ingestion point, defaults to <table>.kafka")
+    parser.add_argument('-k', '--kafka-rest-url', default="localhost", required=False,
+            help="URL of kafka rest endpoint (default localhost)")
+    parser.add_argument('-kp', '--kafka-rest-port', default="localhost", required=False,
+            help="Port of kafka rest endpoint (default 8083)")
     parser.add_argument('-c', '--cassandra-host', default="localhost", required=False,
             help="Cassandra host to connect to (default localhost)")
     parser.add_argument('-cp', '--cassandra-port', default="9042", required=False,
             help="Cassandra port to connect to (default 9042)")
     parser.add_argument('-u', '--cassandra-username', required=True,
             help="Cassandra username to ingest with (REQUIRED)")
-    parser.add_argument('-p', '--cassandra-password', required=True,
-            help="Cassandra password to authenticate with (REQUIRED)")
+    parser.add_argument('-p', '--cassandra-password-file', required=True,
+            help="Cassandra password file to authenticate with (REQUIRED)")
     parser.add_argument('-pk', '--partition-key', type=str, required=False,
             help="one or more partition keys, comma-separated, no spaces."
                  "\nNOTE: this argument is required if Cassandra table is not yet created"
@@ -293,9 +300,9 @@ def main():
     args = parse_args()
 
     try:
-        check_for_cassandra_sink_plugin()
-        (file_source, cassandra_sink) = create_connectors(args)
-        register_connectors(file_source, cassandra_sink)
+        check_for_cassandra_sink_plugin(args)
+        (directory_source, cassandra_sink) = create_connectors(args)
+        register_connectors(args, directory_source, cassandra_sink)
     except Exception as e:
         eprint(e.args[0])
         return 1
