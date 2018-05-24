@@ -1,0 +1,125 @@
+#!/usr/bin/env python
+
+from __future__ import print_function
+import sys
+import os
+import argparse
+import json
+import requests
+
+from pygments import highlight, lexers, formatters
+
+DEBUG=False
+DRY=False
+CASSANDRA_SINK_CLASS="com.datamountaineer.streamreactor.connect.cassandra.sink.CassandraSinkConnector"
+DIRECTORY_SOURCE_CLASS="gov.llnl.sonar.kafka.connect.connectors.DirectorySourceConnector"
+
+
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
+
+def pretty_print(title, data, lexer=lexers.JsonLexer()):
+    """ Format and print pretty output using pygments """
+
+    if lexer.name == 'JSON':
+        data = json.dumps(data, sort_keys=True, indent=4)
+
+    colorful_json = highlight(unicode(data, 'UTF-8'), lexer, formatters.TerminalFormatter())
+    print(title + ':')
+    print(colorful_json)
+
+
+def get_connectors(args):
+
+    s = requests.Session()
+    request = requests.Request('GET', args.kafka_rest_url + ":" + args.kafka_rest_port + "/connectors")
+    prepared_request = request.prepare()
+
+    if DRY or DEBUG:
+        request_json = {
+            "method" : prepared_request.method,
+            "url" : prepared_request.url,
+            "headers" : dict(prepared_request.headers),
+            "body" : prepared_request.body
+        }
+        pretty_print("Connector HTTP Request", request_json)
+    if not DRY:
+        response = s.send(prepared_request)
+        if (response.status_code != 200):
+            raise Exception("Error (status code {}) requesting connectors!".format(response.status_code))
+
+    return response.json()
+
+
+def delete_connectors(args, *connectors):
+
+    s = requests.Session()
+
+    for connector in connectors[0]:
+        print("deleting connector {}".format(connector))
+        request = requests.Request('DELETE', args.kafka_rest_url + ":" + args.kafka_rest_port + "/connectors/" + connector)
+        prepared_request = request.prepare()
+    
+        if DRY or DEBUG:
+            request_json = {
+                "method" : prepared_request.method,
+                "url" : prepared_request.url,
+                "headers" : dict(prepared_request.headers),
+                "body" : prepared_request.body
+            }
+            pretty_print("Connector HTTP Request", request_json)
+        if not DRY:
+            response = s.send(prepared_request)
+            if (response.status_code != 204):
+                raise Exception("Error (status code {}) deleting connector {}!".format(response.status_code, connector))
+
+
+def parse_args():
+    """ Parse arguments """
+
+    parser = argparse.ArgumentParser(
+            description="creates a Kafka ingestion file source for a Cassandra table, "
+                        "creating the table if it does not yet exist.",
+            formatter_class=argparse.RawTextHelpFormatter)
+
+    parser.add_argument('-d', '--dry', action="store_true", required=False,
+            help="dry run")
+    parser.add_argument('-g', '--debug', action="store_true", required=False,
+            help="debug this script")
+    parser.add_argument('-k', '--kafka-rest-url', default="localhost", required=False,
+            help="URL of kafka rest endpoint (default localhost)")
+    parser.add_argument('-kp', '--kafka-rest-port', default="8083", required=False,
+            help="Port of kafka rest endpoint (default 8083)")
+
+    args = parser.parse_args()
+
+    global DRY
+    global DEBUG 
+
+    DRY = args.dry
+    DEBUG = args.debug
+
+    if DEBUG:
+        pretty_print("Arguments passed", args.__dict__)
+
+    return args
+
+
+def main():
+    """ Main entrypoint """
+
+    args = parse_args()
+
+    try:
+        connectors = get_connectors(args)
+        pretty_print("Deleting connectors", connectors)
+        delete_connectors(args, connectors)
+        pretty_print("Connectors remaining", get_connectors(args))
+    except Exception as e:
+        eprint(e)
+        return 1
+
+
+if __name__ == '__main__':
+    main()
