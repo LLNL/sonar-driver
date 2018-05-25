@@ -2,8 +2,9 @@
 Kafka Connector Configuration Class
 """
 
-from print_utils import pretty_print
 import json
+
+from sonar_driver.print_utils import pretty_print
 
 
 class ConnectorConfig():

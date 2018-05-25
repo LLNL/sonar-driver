@@ -3,7 +3,7 @@
 # make self-aware
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-${DIR}/../sonar_driver/create_ingestor \
+${DIR}/../bin/create_ingestor \
     --debug \
     --dry \
     --cassandra-host cassandra_host \

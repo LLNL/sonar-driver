@@ -5,7 +5,7 @@ Sonar Directory Source Connector Configuration Class
 import json
 from enum import Enum
 
-from connector_config import ConnectorConfig
+from sonar_driver.connector_config import ConnectorConfig
 
 
 class FileFormat(Enum):

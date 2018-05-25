@@ -3,8 +3,9 @@ Printing Utilities
 """
 
 from __future__ import print_function
-from pygments import highlight, lexers, formatters
 import json
+
+from pygments import highlight, lexers, formatters
 
 
 def eprint(*args, **kwargs):

@@ -8,13 +8,13 @@ import traceback
 
 import avro.schema
 
-from kafka_connect_session import KafkaConnectSession
-from cassandra_session import CassandraSession
+from sonar_driver.kafka_connect_session import KafkaConnectSession
+from sonar_driver.cassandra_session import CassandraSession
 
-from print_utils import pretty_print
-from connector import Connector
-from sonar_directory_source_config import SonarDirectorySourceConfig, FileFormat
-from cassandra_sink_config import CassandraSinkConfig
+from sonar_driver.print_utils import pretty_print
+from sonar_driver.connector import Connector
+from sonar_driver.sonar_directory_source_config import SonarDirectorySourceConfig, FileFormat
+from sonar_driver.cassandra_sink_config import CassandraSinkConfig
 
 
 def create_ingestor_connectors(

@@ -1,6 +1,6 @@
 import requests
 
-from print_utils import pretty_print
+from sonar_driver.print_utils import pretty_print
 
 
 class KafkaConnectSession():

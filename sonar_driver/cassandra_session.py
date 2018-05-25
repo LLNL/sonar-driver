@@ -1,8 +1,9 @@
-from print_utils import pretty_print
 from pygments import lexers
 
 from cassandra.cluster import Cluster
 from cassandra.auth import PlainTextAuthProvider
+
+from sonar_driver.print_utils import pretty_print
 
 class CassandraSession():
     def __init__(self, username, password_file, hosts=['localhost'], port=9042, dry=False, debug=False):

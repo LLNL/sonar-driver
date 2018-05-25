@@ -6,8 +6,8 @@ import traceback
 
 import avro.schema
 
-from print_utils import pretty_print
-from create_ingestor import create_ingestor
+from sonar_driver.print_utils import pretty_print
+from sonar_driver.create_ingestor import create_ingestor
 
 
 def parse_args():
@@ -73,9 +73,8 @@ def parse_args():
 def main():
     """ Main entrypoint """
 
-    args = parse_args()
-
     try:
+        args = parse_args()
 
         # Get avro schema from file
         with open(args.avro_schema_file, 'r') as f:
