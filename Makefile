@@ -4,6 +4,10 @@ virtualenv: requirements.txt
 		&& pip install --upgrade pip \
 		&& pip install -r requirements.txt
 
+install: virtualenv README.md LICENSE setup.py sonar_driver/*.py
+	source ./virtualenv/bin/activate \
+		&& pip install --upgrade --force-reinstall `pwd`
+
 test: FORCE
 	echo "testing"
 
