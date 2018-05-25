@@ -2,8 +2,10 @@
 Sonar Directory Source Connector Configuration Class
 """
 
-from connector_config import ConnectorConfig
+import json
 from enum import Enum
+
+from connector_config import ConnectorConfig
 
 
 class FileFormat(Enum):
@@ -17,6 +19,7 @@ class FileFormat(Enum):
 class SonarDirectorySourceConfig(ConnectorConfig):
 
     CONNECTOR_CLASS         = "gov.llnl.sonar.kafka.connect.connectors.DirectorySourceConnector"
+
     BATCH_SIZE_KEY          = "batch.size" 
     DIRNAME_KEY             = "dirname" 
     COMPLETED_DIRNAME_KEY   = "completed.dirname" 
@@ -41,5 +44,5 @@ class SonarDirectorySourceConfig(ConnectorConfig):
         self.config_dict[self.COMPLETED_DIRNAME_KEY]    = completed_dirname
         self.config_dict[self.FORMAT_KEY]               = file_format
         self.config_dict[self.FORMAT_OPTIONS_KEY]       = format_options
-        self.config_dict[self.AVRO_SCHEMA_KEY]          = avro_schema
+        self.config_dict[self.AVRO_SCHEMA_KEY]          = json.dumps(avro_schema.to_json())
 

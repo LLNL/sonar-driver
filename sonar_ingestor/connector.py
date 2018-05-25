@@ -6,5 +6,5 @@ class Connector():
     def json(self):
         return { 
             "name" : self.name, 
-            "config" : self.config.config_dict 
+            "config" : self.config.json() 
         }
