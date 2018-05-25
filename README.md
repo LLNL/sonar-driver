@@ -1,4 +1,12 @@
-# create-ingestor
+# Sonar Driver
+
+This library contains the logic to drive Sonar, including:
+
+* Creating Kafka Connect sources and sinks:
+    * Sonar directory source
+    * Cassandra sink
+* Communicating with the Kafka REST API
+* Communicating with Cassandra
 
 ## Quick Start Guide
 
