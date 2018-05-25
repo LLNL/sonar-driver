@@ -3,7 +3,9 @@
 # make self-aware
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-${DIR}/../sonar_ingestor/create-ingestor --dry --debug \
+${DIR}/../sonar_driver/create_ingestor \
+    --debug \
+    --dry \
     --cassandra-host cassandra_host \
     --kafka-rest-url kafka_rest_url \
     --cassandra-username cassandra_user \
@@ -15,5 +17,5 @@ ${DIR}/../sonar_ingestor/create-ingestor --dry --debug \
     --ingest-dir "mydirname" \
     --completed-dir "mycompleteddirname" \
     --partition-key "id" \
-    ${DIR}/test/idstr.avsc mykeyspace mytable
+    ${DIR}/idstr.avsc mykeyspace mytable
 

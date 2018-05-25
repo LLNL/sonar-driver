@@ -1,44 +1,23 @@
-# Sonar Driver
+# create_ingestor
 
-This library contains the logic to drive Sonar, including:
+Python script to create an _ingestor_, which includes:
+* A Sonar directory source
+* A Cassandra sink
+* A unique topic connecting the source to the sink
 
-* Creating and deleting Kafka Connect sources and sinks
-* Available connector configurations:
-    * Sonar directory source
-    * Cassandra sink
-* Communicating with the Kafka REST API
-* Communicating with Cassandra
-
-## Prerequisites
-
-* Python3
-* virtualenv
-* make
-
-## Install
-
-Typing `make` will create the necessary python virtualenv for this project.
-After successful completion, invoke `source ./virtualenv/bin/activate`
-
-Python dependencies are listed in [requirements.txt](./requirements.txt)
-
-## Tools
-
-[create_ingestor](./doc/create_ingestor.md)
-
-[delete_connector](./doc/delete_connector.md)
+## Usage:
 
 ```bash
-
-usage: create-ingestor [-h] [-d] [-g] [-f FILE_FORMAT] [-fo FORMAT_OPTIONS]
-                       [-t MAX_TASKS] [-b BATCH_SIZE] -i INGEST_DIR -o
+usage: create_ingestor [-h] [-d] [-g] [-f FILE_FORMAT] [-fo FORMAT_OPTIONS]
+                       [-t TASKS_MAX] [-b BATCH_SIZE] -i INGEST_DIR -o
                        COMPLETED_DIR [-k KAFKA_REST_URL] [-kp KAFKA_REST_PORT]
-                       [-c CASSANDRA_HOST] [-cp CASSANDRA_PORT] -u
-                       CASSANDRA_USERNAME -p CASSANDRA_PASSWORD_FILE
-                       [-pk PARTITION_KEY] [-ck CLUSTER_KEY]
+                       [-c CASSANDRA_HOSTS [CASSANDRA_HOSTS ...]]
+                       [-cp CASSANDRA_PORT] -u CASSANDRA_USERNAME -p
+                       CASSANDRA_PASSWORD_FILE [-pk PARTITION_KEY]
+                       [-ck CLUSTER_KEY]
                        avro_schema_file keyspace table
 
-creates a Kafka ingestion file source for a Cassandra table, creating the table if it does not yet exist.
+Creates a ingestor from a directory source to a Cassandra table sink, creating the table if it does not yet exist.
 
 positional arguments:
   avro_schema_file      Avro schema file
@@ -53,7 +32,7 @@ optional arguments:
                         file format (json|csv)
   -fo FORMAT_OPTIONS, --format-options FORMAT_OPTIONS
                         file format options
-  -t MAX_TASKS, --max-tasks MAX_TASKS
+  -t TASKS_MAX, --tasks-max TASKS_MAX
                         maximum number of concurrent ingestion tasks
   -b BATCH_SIZE, --batch-size BATCH_SIZE
                         batch size for file reads
@@ -65,7 +44,7 @@ optional arguments:
                         URL of kafka rest endpoint (default localhost)
   -kp KAFKA_REST_PORT, --kafka-rest-port KAFKA_REST_PORT
                         Port of kafka rest endpoint (default 8083)
-  -c CASSANDRA_HOST, --cassandra-host CASSANDRA_HOST
+  -c CASSANDRA_HOSTS [CASSANDRA_HOSTS ...], --cassandra-hosts CASSANDRA_HOSTS [CASSANDRA_HOSTS ...]
                         Cassandra host to connect to (default localhost)
   -cp CASSANDRA_PORT, --cassandra-port CASSANDRA_PORT
                         Cassandra port to connect to (default 9042)

@@ -22,7 +22,7 @@ class CassandraSinkConfig(ConnectorConfig):
             table,
             cassandra_username,
             cassandra_password_file,
-            cassandra_host='localhost',
+            cassandra_hosts=['localhost'],
             cassandra_port=9042,
             kcql=None, # will be inferred
             tasks_max=1):
@@ -30,7 +30,7 @@ class CassandraSinkConfig(ConnectorConfig):
         super().__init__(topic, tasks_max)
 
         self.config_dict[self.CASSANDRA_KEYSPACE_KEY]   = keyspace
-        self.config_dict[self.CASSANDRA_HOST_KEY]       = cassandra_host
+        self.config_dict[self.CASSANDRA_HOST_KEY]       = ','.join(cassandra_hosts)
         self.config_dict[self.CASSANDRA_PORT_KEY]       = cassandra_port
         self.config_dict[self.CASSANDRA_USERNAME_KEY]   = cassandra_username
         self.config_dict[self.CASSANDRA_PASSFILE_KEY]   = cassandra_password_file
