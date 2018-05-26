@@ -9,7 +9,7 @@ This library contains the logic to drive Sonar, including:
 
 ## Prerequisites
 
-* Python3
+* python3
 * virtualenv
 * make
 

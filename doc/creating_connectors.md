@@ -45,7 +45,7 @@ will produce:
 
 The Avro schema file specifies the schema of data in the files.
 In this case each record in the files contains an integer named "id" and a string named "str".
-You can create a Cassandra table with the same schema by using the `create_cassandra_table` script (see [Creating Cassandra Tables](./creating_cassandra_tables)).
+You can create a Cassandra table with the same schema by using the `create_cassandra_table` script (see [Creating Cassandra Tables](./creating_cassandra_tables.md)).
 
 See `create_directory_source_connector --help` for more details.
 
