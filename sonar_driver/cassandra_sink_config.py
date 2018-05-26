@@ -9,6 +9,7 @@ class CassandraSinkConfig(ConnectorConfig):
 
     CONNECTOR_CLASS         = "com.datamountaineer.streamreactor.connect.cassandra.sink.CassandraSinkConnector"
     
+    TOPICS_KEY              = "topics"
     CASSANDRA_KEYSPACE_KEY  = "connect.cassandra.key.space"
     CASSANDRA_HOST_KEY      = "connect.cassandra.contact.points"
     CASSANDRA_PORT_KEY      = "connect.cassandra.port"
@@ -17,7 +18,7 @@ class CassandraSinkConfig(ConnectorConfig):
     KCQL_KEY                = "connect.cassandra.kcql"
 
     def __init__(self, 
-            topic, 
+            topics, 
             keyspace,
             table,
             cassandra_username,
@@ -27,8 +28,9 @@ class CassandraSinkConfig(ConnectorConfig):
             kcql=None, # will be inferred
             tasks_max=1):
 
-        super().__init__(topic, tasks_max)
+        super().__init__(tasks_max)
 
+        self.config_dict[self.TOPICS_KEY]   		= topics
         self.config_dict[self.CASSANDRA_KEYSPACE_KEY]   = keyspace
         self.config_dict[self.CASSANDRA_HOST_KEY]       = ','.join(cassandra_hosts)
         self.config_dict[self.CASSANDRA_PORT_KEY]       = cassandra_port
@@ -36,7 +38,7 @@ class CassandraSinkConfig(ConnectorConfig):
         self.config_dict[self.CASSANDRA_PASSFILE_KEY]   = cassandra_password_file
 
         if kcql is None:
-            self.config_dict[self.KCQL_KEY] = "INSERT INTO " + table + " SELECT * FROM " + topic
+            self.config_dict[self.KCQL_KEY] = "INSERT INTO " + table + " SELECT * FROM " + topics
         else:
             self.config_dict[self.KCQL_KEY] = kcql
 

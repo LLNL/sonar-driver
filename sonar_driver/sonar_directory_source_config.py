@@ -21,6 +21,7 @@ class SonarDirectorySourceConfig(ConnectorConfig):
 
     CONNECTOR_CLASS         = "gov.llnl.sonar.kafka.connect.connectors.DirectorySourceConnector"
 
+    TOPIC_KEY               = "topic"
     BATCH_SIZE_KEY          = "batch.size" 
     DIRNAME_KEY             = "dirname" 
     COMPLETED_DIRNAME_KEY   = "completed.dirname" 
@@ -38,11 +39,12 @@ class SonarDirectorySourceConfig(ConnectorConfig):
             format_options={}, 
             batch_size=10000):
 
-        super().__init__(topic, tasks_max)
+        super().__init__(tasks_max)
 
         dirname_abspath = os.path.abspath(dirname)
         completed_dirname_abspath = os.path.abspath(completed_dirname)
 
+        self.config_dict[self.TOPIC_KEY]                = topic
         self.config_dict[self.BATCH_SIZE_KEY]           = batch_size
         self.config_dict[self.DIRNAME_KEY]              = dirname_abspath
         self.config_dict[self.COMPLETED_DIRNAME_KEY]    = completed_dirname_abspath

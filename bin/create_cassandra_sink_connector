@@ -25,8 +25,6 @@ def parse_args():
             help="debug this script")
     parser.add_argument('-t', '--tasks-max', default="1", required=False,
             help="maximum number of concurrent ingestion tasks")
-    parser.add_argument('-n', '--topic-name', default=None, required=False,
-            help="topic name for the ingestor (if unspecified, will be auto-generated with a unique name)")
     parser.add_argument('-c', '--cassandra-hosts', nargs='+', default=[os.environ.get("CQLSH_HOST", "localhost")], required=False,
             help="Cassandra host to connect to (default: value of CQLSH_HOST or 'localhost')")
     parser.add_argument('-cp', '--cassandra-port', default=os.environ.get("CQLSH_PORT", "9042"), required=False,
@@ -36,6 +34,7 @@ def parse_args():
     parser.add_argument('-p', '--cassandra-password-file', required=True,
             help="Cassandra password file to authenticate with (REQUIRED)")
 
+    parser.add_argument('topic', help="topic to consume from")
     parser.add_argument('keyspace', type=str, help="Cassandra keyspace to ingest into")
     parser.add_argument('table', type=str, help="Cassandra table to ingest into")
 
@@ -54,15 +53,11 @@ def main():
 
     try:
 
-        # Create unique topic if none specified
-        if args.topic_name is None:
-            args.topic_name = "t" + str(float(time.time())) + "-" + args.keyspace + "." + args.table
-
         # Create the connector
         cassandra_sink = Connector(
-            "cassandra_sink-" + args.topic_name,
+            "cassandra_sink-" + args.topic,
             CassandraSinkConfig(
-                args.topic_name,
+                args.topic,
                 args.keyspace,
                 args.table,
                 args.cassandra_username,
