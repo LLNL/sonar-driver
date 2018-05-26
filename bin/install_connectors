@@ -29,10 +29,10 @@ def parse_args():
 
     args = parser.parse_args()
 
-    args.connector_files = set(args.connector_files) # remove dupes
-
     if args.debug:
         pretty_print(args.__dict__, title="Arguments passed")
+
+    args.connector_files = set(args.connector_files) # remove dupes
 
     return args
 

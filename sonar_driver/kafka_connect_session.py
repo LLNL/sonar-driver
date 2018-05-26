@@ -30,11 +30,11 @@ class KafkaConnectSession():
                 raise Exception("Error: status code {} != expected status code {}! Run with -g/--debug to see server response".format(response.status_code, expected_status_code))
             return response
 
-    def install_connector(self, connector):
-        return self.request('POST', '/connectors/', connector, 201)
+    def install_connector(self, connector_json):
+        return self.request('POST', '/connectors/', json=connector_json, expected_status_code=201)
 
-    def uninstall_connector(self, connector):
-        return self.request('DELETE', '/connectors/', connector, 204)
+    def uninstall_connector(self, connector_name):
+        return self.request('DELETE', '/connectors/' + connector_name, expected_status_code=204)
 
     def get_connectors(self):
-        return self.request('GET', '/connectors', connector, 200)
+        return self.request('GET', '/connectors', expected_status_code=200)
