@@ -2,6 +2,7 @@
 Sonar Directory Source Connector Configuration Class
 """
 
+import os
 import json
 from enum import Enum
 
@@ -39,9 +40,12 @@ class SonarDirectorySourceConfig(ConnectorConfig):
 
         super().__init__(topic, tasks_max)
 
+        dirname_abspath = os.path.abspath(dirname)
+        completed_dirname_abspath = os.path.abspath(completed_dirname)
+
         self.config_dict[self.BATCH_SIZE_KEY]           = batch_size
-        self.config_dict[self.DIRNAME_KEY]              = dirname
-        self.config_dict[self.COMPLETED_DIRNAME_KEY]    = completed_dirname
+        self.config_dict[self.DIRNAME_KEY]              = dirname_abspath
+        self.config_dict[self.COMPLETED_DIRNAME_KEY]    = completed_dirname_abspath
         self.config_dict[self.FORMAT_KEY]               = file_format
         self.config_dict[self.FORMAT_OPTIONS_KEY]       = format_options
         self.config_dict[self.AVRO_SCHEMA_KEY]          = json.dumps(avro_schema.to_json())

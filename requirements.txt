@@ -7,3 +7,4 @@ Pygments==2.2.0
 requests==2.18.4
 six==1.11.0
 urllib3==1.22
+sh==1.12.14

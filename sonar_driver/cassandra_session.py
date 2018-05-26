@@ -33,7 +33,7 @@ class CassandraSession():
         exists_query = "SELECT table_name FROM system_schema.tables WHERE keyspace_name='{}' AND table_name='{}'".format(keyspace, table)
 
         if self.debug:
-            pretty_print("Check for Cassandra table CQL", exists_query, lexers.SqlLexer())
+            pretty_print(exists_query, title="Check for Cassandra table CQL", lexer=lexers.SqlLexer())
 
         if not self.dry:
             try:
@@ -42,7 +42,7 @@ class CassandraSession():
                 raise Exception("Cassandra user '{}' unauthorized to view system_schema.tables on host '{}'!".format(user,host))
 
             if self.debug:
-                pretty_print("Query results", results.current_rows)
+                pretty_print(results.current_rows, title="Query results")
 
             if results.current_rows:
                 return True
@@ -73,6 +73,6 @@ class CassandraSession():
         create_query = "CREATE TABLE {}.{} ({}, PRIMARY KEY {})".format(keyspace, table, columns_clause, primary_key_clause)
 
         if self.debug or self.dry:
-            pretty_print("Create table CQL", create_query, lexers.SqlLexer())
+            pretty_print(create_query, title="Create table CQL", lexer=lexers.SqlLexer())
         if not self.dry:
             session.execute(create_query, timeout=None) 

@@ -5,13 +5,13 @@ import traceback
 import argparse
 
 from sonar_driver.print_utils import pretty_print
-from sonar_driver.delete_connectors import delete_connectors, delete_all_connectors
+from sonar_driver.uninstall_connectors import uninstall_connectors, uninstall_all_connectors
 
 def parse_args():
     """ Parse arguments """
 
     parser = argparse.ArgumentParser(
-            description="Deletes running Kafka connectors.",
+            description="Uninstalls running Kafka connectors.",
             formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument('-d', '--dry', action="store_true", required=False,
@@ -23,14 +23,14 @@ def parse_args():
     parser.add_argument('-kp', '--kafka-rest-port', default=os.environ.get("KAFKA_REST_PORT", "8083"), required=False,
             help="Port of kafka rest endpoint (default: value of KAFKA_REST_PORT or 8083)")
     parser.add_argument('-a', '--all', action="store_true", required=False,
-            help="Delete all connectors")
+            help="Uninstall all connectors")
 
     parser.add_argument('connectors', nargs='*', default=None, help="Avro schema file")
 
     args = parser.parse_args()
 
     if args.debug:
-        pretty_print("Arguments passed", args.__dict__)
+        pretty_print(args.__dict__, title="Arguments passed")
 
     if not args.all and not args.connectors:
         raise argparse.ArgumentTypeError("No connectors defined!")
@@ -44,16 +44,16 @@ def main():
     args = parse_args()
 
     try:
-        # Get connectors to delete
+        # Get connectors to uninstall
         if args.all:
-            delete_all_connectors(
+            uninstall_all_connectors(
                 args.kafka_rest_url,
                 args.kafka_rest_port,
                 args.debug,
                 args.dry
             )
         else:
-            delete_connectors(
+            uninstall_connectors(
                 args.connectors,
                 args.kafka_rest_url,
                 args.kafka_rest_port,

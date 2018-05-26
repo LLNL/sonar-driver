@@ -21,14 +21,20 @@ class KafkaConnectSession():
         prepared_request = request.prepare()
 
         if self.dry or self.debug:
-            pretty_print("Connector HTTP Request", request.__dict__)
+            pretty_print(request.__dict__, title="Connector HTTP Request")
         if not self.dry:
             response = self.requests_session.send(prepared_request)
             if self.debug:
-                pretty_print("Connector HTTP Response", response.json())
+                pretty_print(response.json(), title="Connector HTTP Response")
             if (response.status_code != expected_status_code):
                 raise Exception("Error: status code {} != expected status code {}! Run with -g/--debug to see server response".format(response.status_code, expected_status_code))
             return response
 
-    def create_connector(self, connector):
-        self.request('POST', '/connectors/', connector.json())
+    def install_connector(self, connector):
+        return self.request('POST', '/connectors/', connector, 201)
+
+    def uninstall_connector(self, connector):
+        return self.request('DELETE', '/connectors/', connector, 204)
+
+    def get_connectors(self):
+        return self.request('GET', '/connectors', connector, 200)

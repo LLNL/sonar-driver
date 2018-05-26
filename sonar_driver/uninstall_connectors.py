@@ -1,7 +1,7 @@
 from sonar_driver.print_utils import pretty_print
 from sonar_driver.kafka_connect_session import KafkaConnectSession
 
-def delete_connectors(
+def uninstall_connectors(
         connectors,
         kafka_rest_url='localhost',
         kafka_rest_port=8083,
@@ -16,20 +16,20 @@ def delete_connectors(
         dry
     )
 
-    # Issue DELETE for each
+    # Issue uninstall for each
     for connector in connectors:
-        kafka_connect_session.request('DELETE', '/connectors/' + connector, 204)
+        kafka_connect_session.uninstall_connector(connector)
 
     # Get remaining connectors
-    connectors_response = kafka_connect_session.request('GET', '/connectors', 200)
+    connectors_response = kafka_connect_session.get_connectors()
     if not dry:
         connectors = connectors_response.json()
     else:
         connectors = []
-    pretty_print("Connectors remaining", connectors)
+    pretty_print(connectors, title="Connectors remaining")
 
 
-def delete_all_connectors(
+def uninstall_all_connectors(
         kafka_rest_url='localhost',
         kafka_rest_port=8083,
         debug=False,
@@ -43,13 +43,13 @@ def delete_all_connectors(
         dry
     )
 
-    # Get connectors to delete
-    connectors_response = kafka_connect_session.request('GET', '/connectors', 200)
+    # Get connectors to uninstall
+    connectors_response = kafka_connect_session.get_connectors()
     if not dry:
         connectors = connectors_response.json()
     else:
         connectors = ['all', 'of', 'them']
 
-    delete_connectors(connectors, kafka_rest_url, kafka_rest_port, debug, dry)
+    uninstall_connectors(connectors, kafka_rest_url, kafka_rest_port, debug, dry)
     
 
