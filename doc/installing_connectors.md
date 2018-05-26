@@ -1,7 +1,7 @@
 # Installing and Uninstalling Connectors
 
 Connectors are JSON objects that can be created using the connector creator scripts (see [Creating Connectors](./creating_connectors.md)).
-Created connectors can then be installed using the `install_connectors` script or uninstalled using the `uninstall_connectors` script.
+Created connectors can then be installed using the `install_connectors` script, and installed connectors can be uninstalled using the `uninstall_connectors` script.
 Invoke with `--dry/-d` or `--debug/-g` to see the ensuing REST commands.
 
 ## Connecting to Kafka
