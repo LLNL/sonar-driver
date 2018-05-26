@@ -34,14 +34,14 @@ def parse_args():
             help="directory to use as ingestion point")
     parser.add_argument('-o', '--completed-dir', required=True,
             help="directory to move ingested files into")
-    parser.add_argument('-k', '--kafka-rest-url', default="localhost", required=False,
-            help="URL of kafka rest endpoint (default localhost)")
-    parser.add_argument('-kp', '--kafka-rest-port', default="8083", required=False,
-            help="Port of kafka rest endpoint (default 8083)")
-    parser.add_argument('-c', '--cassandra-hosts', nargs='+', default=["localhost"], required=False,
-            help="Cassandra host to connect to (default localhost)")
-    parser.add_argument('-cp', '--cassandra-port', default="9042", required=False,
-            help="Cassandra port to connect to (default 9042)")
+    parser.add_argument('-k', '--kafka-rest-url', default=os.environ.get("KAFKA_REST_URL", "localhost"), required=False,
+            help="URL of kafka rest endpoint (default: value of KAFKA_REST_URL or 'localhost')")
+    parser.add_argument('-kp', '--kafka-rest-port', default=os.environ.get("KAFKA_REST_PORT", "8083"), required=False,
+            help="Port of kafka rest endpoint (default: value of KAFKA_REST_PORT or 8083)")
+    parser.add_argument('-c', '--cassandra-hosts', nargs='+', default=[os.environ.get("CQLSH_HOST", "localhost")], required=False,
+            help="Cassandra host to connect to (default: value of CQLSH_HOST or 'localhost')")
+    parser.add_argument('-cp', '--cassandra-port', default=os.environ.get("CQLSH_PORT", "9042"), required=False,
+            help="Cassandra port to connect to (default: value of CQLSH_PORT or 9042)")
     parser.add_argument('-u', '--cassandra-username', required=True,
             help="Cassandra username to ingest with (REQUIRED)")
     parser.add_argument('-p', '--cassandra-password-file', required=True,

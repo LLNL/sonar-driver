@@ -49,7 +49,7 @@ class CassandraSession():
             else:
                 return False
         else:
-            return False # dry run, assume it's False to test
+            return True
 
     @staticmethod
     def primary_key(partition_key, cluster_key):
