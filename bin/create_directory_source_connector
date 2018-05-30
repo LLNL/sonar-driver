@@ -35,10 +35,10 @@ def parse_args():
             help="batch size for file reads")
     parser.add_argument('-b', '--backup', action="store_true", required=False,
                         help="whether to create a backup tarball before ingesting")
-    parser.add_argument('-zh', '--zookeeper-host', default="localhost", required=False,
-                        help="ZooKeeper host (for keeping state)")
-    parser.add_argument('-zp', '--zookeeper-port', type=int, default=2181, required=False,
-                        help="ZooKeeper port (for keeping state)")
+    parser.add_argument('-zh', '--zookeeper-host', default=os.environ.get("ZK_HOST", "localhost"), required=False,
+                        help="ZooKeeper host to connect to (default: value of ZK_HOST or 'localhost')")
+    parser.add_argument('-zp', '--zookeeper-port', default=os.environ.get("ZK_PORT", "2181"), required=False,
+                        help="ZooKeeper port to connect to (default: value of ZK_PORT or 2181)")
 
     parser.add_argument('ingest_dir', help="directory to use as ingestion point")
     parser.add_argument('completed_dir', help="directory to move ingested files into")
@@ -80,7 +80,9 @@ def main():
                 file_format=args.file_format,
                 format_options=args.format_options,
                 batch_size=args.batch_size,
-                backup=args.backup
+                backup=args.backup,
+                zookeeper_host=args.zookeeper_host,
+                zookeeper_port=args.zookeeper_port
             )
         )
         
