@@ -3,19 +3,22 @@
 # make self-aware
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-${DIR}/../bin/create_ingestor \
+${DIR}/../bin/create_directory_source_connector \
     --debug \
-    --dry \
-    --cassandra-host cassandra_host \
-    --kafka-rest-url kafka_rest_url \
-    --cassandra-username cassandra_user \
-    --cassandra-password-file cassandra_password_file \
+    --topic-name "mytopicname" \
     --file-format json \
     --format-options "{\"option\":\"myoption\"}" \
     --tasks-max 1 \
     --batch-size 40000 \
-    --ingest-dir "mydirname" \
-    --completed-dir "mycompleteddirname" \
-    --partition-key "id" \
-    ${DIR}/idstr.avsc mykeyspace mytable
+    --backup \
+    "my/ingest/dir" "my/completed/dir" ${DIR}/idstr.avsc
+
+${DIR}/../bin/create_cassandra_sink_connector \
+    --debug \
+    --dry \
+    --cassandra-host "mycassandrahost" \
+    --cassandra-username "mycassandrauser" \
+    --cassandra-password-file "mycassandrapasswordfile" \
+    --tasks-max 1 \
+    mytopicname mykeyspace mytable
 

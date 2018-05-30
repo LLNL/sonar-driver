@@ -1,10 +1,12 @@
-virtualenv/: requirements.txt
-	/usr/apps/python3/bin/virtualenv virtualenv/
-	source ./virtualenv/bin/activate \
+PYTHON_HOME=/Users/gimenez1/.pyenv/versions/3.6.5/
+
+venv/: requirements.txt
+	${PYTHON_HOME}/bin/python3 -m venv venv/
+	source ./venv/bin/activate \
 		&& pip install --upgrade pip \
 		&& pip install -r requirements.txt
 
-install: virtualenv README.md LICENSE setup.py sonar_driver/*.py
-	source ./virtualenv/bin/activate \
+install: venv README.md LICENSE setup.py sonar_driver/*.py
+	source ./venv/bin/activate \
 		&& pip install --upgrade --force-reinstall `pwd`
 

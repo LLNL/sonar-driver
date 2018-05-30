@@ -27,7 +27,10 @@ class SonarDirectorySourceConfig(ConnectorConfig):
     COMPLETED_DIRNAME_KEY   = "completed.dirname" 
     FORMAT_KEY              = "format" 
     FORMAT_OPTIONS_KEY      = "format.options" 
-    AVRO_SCHEMA_KEY         = "avro.schema" 
+    AVRO_SCHEMA_KEY         = "avro.schema"
+    BACKUP_KEY              = "backup"
+    ZK_HOST_KEY             = "zk.host"
+    ZK_PORT_KEY             = "zk.port"
 
     def __init__(self, 
             topic, 
@@ -37,7 +40,10 @@ class SonarDirectorySourceConfig(ConnectorConfig):
             tasks_max=1, 
             file_format=FileFormat.JSON, 
             format_options={}, 
-            batch_size=10000):
+            batch_size=10000,
+            backup=False,
+            zookeeper_host="localhost",
+            zookeeper_port=2181):
 
         super().__init__(tasks_max)
 
@@ -51,4 +57,7 @@ class SonarDirectorySourceConfig(ConnectorConfig):
         self.config_dict[self.FORMAT_KEY]               = file_format
         self.config_dict[self.FORMAT_OPTIONS_KEY]       = format_options
         self.config_dict[self.AVRO_SCHEMA_KEY]          = json.dumps(avro_schema.to_json())
+        self.config_dict[self.BACKUP_KEY]               = backup
+        self.config_dict[self.ZK_HOST_KEY]              = zookeeper_host
+        self.config_dict[self.ZK_PORT_KEY]              = zookeeper_port
 

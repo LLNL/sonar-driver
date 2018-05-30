@@ -31,8 +31,14 @@ def parse_args():
             help="maximum number of concurrent ingestion tasks")
     parser.add_argument('-n', '--topic-name', default=None, required=False,
             help="topic name for the ingestor (if unspecified, will be auto-generated with a unique name)")
-    parser.add_argument('-b', '--batch-size', default="10000", required=False,
+    parser.add_argument('-s', '--batch-size', default="10000", required=False,
             help="batch size for file reads")
+    parser.add_argument('-b', '--backup', action="store_true", required=False,
+                        help="whether to create a backup tarball before ingesting")
+    parser.add_argument('-zh', '--zookeeper-host', default="localhost", required=False,
+                        help="ZooKeeper host (for keeping state)")
+    parser.add_argument('-zp', '--zookeeper-port', type=int, default=2181, required=False,
+                        help="ZooKeeper port (for keeping state)")
 
     parser.add_argument('ingest_dir', help="directory to use as ingestion point")
     parser.add_argument('completed_dir', help="directory to move ingested files into")
@@ -73,7 +79,8 @@ def main():
                 tasks_max=args.tasks_max,
                 file_format=args.file_format,
                 format_options=args.format_options,
-                batch_size=args.batch_size
+                batch_size=args.batch_size,
+                backup=args.backup
             )
         )
         
