@@ -6,6 +6,8 @@ import time
 import argparse
 import traceback
 
+import tarfile
+
 import avro.schema
 
 from sonar_driver.print_utils import pretty_print
@@ -58,6 +60,11 @@ def main():
     args = parse_args()
 
     try:
+        # Backup tar
+        if args.backup:
+            with tarfile.open(args.completed_dir + "/" + os.path.basename(args.ingest_dir) + ".tar.gz", "w:gz") as tgz:
+                tgz.add(args.ingest_dir, arcname=os.path.basename(args.ingest_dir))
+
         # Get avro schema from file
         with open(args.avro_schema_file, 'r') as f:
             avro_schema = avro.schema.Parse(f.read())
@@ -80,7 +87,6 @@ def main():
                 file_format=args.file_format,
                 format_options=args.format_options,
                 batch_size=args.batch_size,
-                backup=args.backup,
                 zookeeper_host=args.zookeeper_host,
                 zookeeper_port=args.zookeeper_port
             )
