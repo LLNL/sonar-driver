@@ -2,31 +2,34 @@ from pygments import lexers
 
 from cassandra.cluster import Cluster
 from cassandra.auth import PlainTextAuthProvider
-
+from cassandra.cluster import NoHostAvailable
+from cassandra import AuthenticationFailed
 from sonar_driver.print_utils import pretty_print
 
 class CassandraSession():
-    def __init__(self, username, password_file, hosts=['localhost'], port=9042, dry=False, debug=False):
+    def __init__(self, username, password_filename, hosts=['localhost'], port=9042, dry=False, debug=False):
         self.dry = dry
         self.debug = debug
+        self.username = username
+        self.hosts = hosts
 
         if self.debug:
-            print("Connecting to Cassandra hosts {} with username '{}' and password file '{}'".format(hosts, username, password_file))
+            print("Connecting to Cassandra hosts {} with username '{}' and password file '{}'".format(self.hosts, self.username, password_filename))
 
         if not self.dry:
-            with open(password_file, 'r') as pf:
-                password=myfile.read()
+            with open(password_filename, 'r') as password_file:
+                password=password_file.read().replace('\n', '')
 
-            auth_provider = PlainTextAuthProvider(username=user, password=password)
-            cluster = Cluster(hosts, port=port, auth_provider=auth_provider)
+            auth_provider = PlainTextAuthProvider(username=self.username, password=password)
+            cluster = Cluster(self.hosts, port=port, auth_provider=auth_provider)
 
         if not self.dry:
             try:
                 self.session = cluster.connect()
-            except NoHostAvailableException:
-                raise Exception("Cassandra host '{}' unavailable!".format(host))
-            except UnauthorizedException:
-                raise Exception("Cassandra user '{}' unauthorized to connect to host '{}'!".format(user,host))
+            except NoHostAvailable:
+                raise Exception("Cassandra host '{}' unavailable!".format(self.hosts))
+            except AuthenticationFailed:
+                raise Exception("Cassandra user '{}' unauthorized to connect to host '{}'!".format(self.username,self.hosts))
 
     def table_exists(self, keyspace, table):
 
@@ -37,9 +40,9 @@ class CassandraSession():
 
         if not self.dry:
             try:
-                results = session.execute(exists_query)
-            except UnauthorizedException:
-                raise Exception("Cassandra user '{}' unauthorized to view system_schema.tables on host '{}'!".format(user,host))
+                results = self.session.execute(exists_query)
+            except AuthenticationFailed:
+                raise Exception("Cassandra user '{}' unauthorized to view system_schema.tables on host '{}'!".format(self.username,self.hosts))
 
             if self.debug:
                 pretty_print(results.current_rows, title="Query results")
@@ -75,4 +78,4 @@ class CassandraSession():
         if self.debug or self.dry:
             pretty_print(create_query, title="Create table CQL", lexer=lexers.SqlLexer())
         if not self.dry:
-            session.execute(create_query, timeout=None) 
+            self.session.execute(create_query, timeout=None) 
