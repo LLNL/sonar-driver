@@ -35,6 +35,6 @@ KAFKA_REST_URL      # e.g. http://sonar8
 KAFKA_REST_PORT     # e.g. 8083
 CQLSH_HOST          # e.g. sonar8
 CQLSH_PORT          # e.g. 9042
-ZK_HOST             # e.g. sonar8
-ZK_PORT             # e.g. 2181
+ZOOKEEPER_HOST      # e.g. sonar8
+ZOOKEEPER_PORT      # e.g. 2181
 ```
