@@ -10,18 +10,19 @@ This library contains the logic to drive Sonar, including:
 ## Prerequisites
 
 * python3
-* virtualenv
 * make
 
 Python library dependencies will be automatically collected from [requirements.txt](./requirements.txt)
 
 ## Install
 
+Assuming you cloned this repo into location SONAR_DRIVER_HOME
+
 1. Run `make` to create the necessary python virtualenv for this project.
 
-2. Invoke the virtualenv with `source ./virtualenv/bin/activate`
+2. Invoke the virtual environment with `source ${SONAR_DRIVER_HOME}/venv/bin/activate`
 
 3. Run `make install` to install the project into the current `PYTHONPATH`.
 
-4. Add the full path of `./bin` to `PATH` to run commands anywhere
+4. Add `${SONAR_DRIVER_HOME}/bin` to `PATH` to run commands anywhere
 
