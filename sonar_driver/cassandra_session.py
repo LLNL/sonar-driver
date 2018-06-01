@@ -27,9 +27,9 @@ class CassandraSession():
             try:
                 self.session = cluster.connect()
             except NoHostAvailable:
-                raise Exception("Cassandra host '{}' unavailable!".format(self.hosts))
+                raise Exception("Cassandra hosts '{}' unavailable!".format(self.hosts))
             except AuthenticationFailed:
-                raise Exception("Cassandra user '{}' unauthorized to connect to host '{}'!".format(self.username,self.hosts))
+                raise Exception("Cassandra user '{}' unauthorized to connect to hosts '{}'!".format(self.username,self.hosts))
 
     def table_exists(self, keyspace, table):
 
@@ -42,7 +42,7 @@ class CassandraSession():
             try:
                 results = self.session.execute(exists_query)
             except AuthenticationFailed:
-                raise Exception("Cassandra user '{}' unauthorized to view system_schema.tables on host '{}'!".format(self.username,self.hosts))
+                raise Exception("Cassandra user '{}' unauthorized to view system_schema.tables on hosts '{}'!".format(self.username,self.hosts))
 
             if self.debug:
                 pretty_print(results.current_rows, title="Query results")
@@ -55,22 +55,37 @@ class CassandraSession():
             return True
 
     @staticmethod
-    def primary_key(partition_key, cluster_key):
-        if cluster_key:
-            return "(({}),{})".format(partition_key, cluster_key)
-        return "(({}))".format(partition_key)
-
-    def create_table_from_avro_schema(self, keyspace, table, avro_schema, partition_key, cluster_key):
-
+    def avro2cass(avro_dtype):
         AVRO_CASSANDRA_TYPEMAP = {
             "string" : "text",
             "long" : "bigint"
         }
 
-        avro2cass = lambda dtype: AVRO_CASSANDRA_TYPEMAP[dtype] if dtype in AVRO_CASSANDRA_TYPEMAP else dtype
+        if isinstance(avro_dtype, dict):
+            if avro_dtype['type'] == 'array':
+                return "list<" + CassandraSession.avro2cass(avro_dtype['values']) + ">"
+            elif avro_dtype['type'] == 'map':
+                return "map<text," + CassandraSession.avro2cass(avro_dtype['values']) + ">"
+
+        return AVRO_CASSANDRA_TYPEMAP[avro_dtype] if avro_dtype in AVRO_CASSANDRA_TYPEMAP else avro_dtype
+
+    @staticmethod
+    def primary_key(partition_key, cluster_key):
+        partition_key_parts = partition_key.split(',')
+        partition_key_quoted = ','.join(map(lambda s: "\"" + s + "\"", partition_key_parts))
+
+        if cluster_key:
+            cluster_key_parts = cluster_key.split(',')
+            cluster_key_quoted = ','.join(map(lambda s: "\"" + s + "\"", cluster_key_parts))
+            return "(({}),{})".format(partition_key_quoted, cluster_key_quoted)
+
+        return "(({}))".format(partition_key_quoted)
+
+    def create_table_from_avro_schema(self, keyspace, table, avro_schema, partition_key, cluster_key):
+
         
         avro_json = avro_schema.to_json()
-        columns_clause = ','.join(map(lambda f: f['name'] + ' ' + avro2cass(f['type']), avro_json['fields']))
+        columns_clause = ', '.join(map(lambda f: "\"" + f['name'] + "\"" + ' ' + CassandraSession.avro2cass(f['type']), avro_json['fields']))
         primary_key_clause = CassandraSession.primary_key(partition_key, cluster_key)
 
         create_query = "CREATE TABLE {}.{} ({}, PRIMARY KEY {})".format(keyspace, table, columns_clause, primary_key_clause)
