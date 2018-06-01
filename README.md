@@ -33,6 +33,6 @@ The following environment variables may be used by the commands in `bin` if set:
 ```bash
 KAFKA_REST_URL      # e.g. http://sonar8
 KAFKA_REST_PORT     # e.g. 8083
-CQLSH_HOST          # e.g. rzsonar8
+CQLSH_HOST          # e.g. sonar8
 CQLSH_PORT          # e.g. 9042
 ```
