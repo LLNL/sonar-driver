@@ -22,8 +22,9 @@ class SonarDirectorySourceConfig(ConnectorConfig):
     CONNECTOR_CLASS         = "gov.llnl.sonar.kafka.connect.connectors.DirectorySourceConnector"
 
     TOPIC_KEY               = "topic"
-    BATCH_SIZE_KEY          = "batch.size" 
-    DIRNAME_KEY             = "dirname" 
+    BATCH_ROWS_KEY          = "batch.rows"
+    BATCH_FILES_KEY         = "batch.files"
+    DIRNAME_KEY             = "dirname"
     COMPLETED_DIRNAME_KEY   = "completed.dirname" 
     FORMAT_KEY              = "format" 
     FORMAT_OPTIONS_KEY      = "format.options" 
@@ -39,7 +40,8 @@ class SonarDirectorySourceConfig(ConnectorConfig):
             tasks_max=1, 
             file_format=FileFormat.JSON, 
             format_options={}, 
-            batch_size=10000,
+            batch_rows=10000,
+            batch_files=10,
             zookeeper_host="localhost",
             zookeeper_port=2181):
 
@@ -49,7 +51,8 @@ class SonarDirectorySourceConfig(ConnectorConfig):
         completed_dirname_abspath = os.path.abspath(completed_dirname)
 
         self.config_dict[self.TOPIC_KEY]                = topic
-        self.config_dict[self.BATCH_SIZE_KEY]           = batch_size
+        self.config_dict[self.BATCH_ROWS_KEY]           = batch_rows
+        self.config_dict[self.BATCH_FILES_KEY]          = batch_files
         self.config_dict[self.DIRNAME_KEY]              = dirname_abspath
         self.config_dict[self.COMPLETED_DIRNAME_KEY]    = completed_dirname_abspath
         self.config_dict[self.FORMAT_KEY]               = file_format

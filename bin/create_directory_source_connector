@@ -33,8 +33,10 @@ def parse_args():
             help="maximum number of concurrent ingestion tasks")
     parser.add_argument('-n', '--topic-name', default=None, required=False,
             help="topic name for the ingestor (if unspecified, will be auto-generated with a unique name)")
-    parser.add_argument('-s', '--batch-size', default="10000", required=False,
-            help="batch size for file reads")
+    parser.add_argument('-br', '--batch-rows', default="10000", required=False,
+            help="number of rows to batch read per file")
+    parser.add_argument('-bf', '--batch-files', default="10", required=False,
+            help="number of files to batch read")
     parser.add_argument('-b', '--backup', action="store_true", required=False,
                         help="whether to create a backup tarball before ingesting")
     parser.add_argument('-zh', '--zookeeper-host', default=os.environ.get("ZOOKEEPER_HOST", "localhost"), required=False,
