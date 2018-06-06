@@ -88,7 +88,8 @@ def main():
                 tasks_max=args.tasks_max,
                 file_format=args.file_format,
                 format_options=args.format_options,
-                batch_size=args.batch_size,
+                batch_rows=args.batch_rows,
+                batch_files=args.batch_files,
                 zookeeper_host=args.zookeeper_host,
                 zookeeper_port=args.zookeeper_port
             )
