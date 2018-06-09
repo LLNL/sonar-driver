@@ -61,9 +61,9 @@ def main():
                 args.table,
                 args.cassandra_username,
                 args.cassandra_password_file,
-                args.cassandra_hosts,
-                args.cassandra_port,
-                kcql=None, # possible TODO: make this configurable
+                cassandra_hosts=args.cassandra_hosts,
+                cassandra_port=args.cassandra_port,
+                kcql=None,                  # possible TODO: make this configurable
                 tasks_max=args.tasks_max,
                 delete_sunk_kafka_records=args.delete_sunk_kafka_records
             )
