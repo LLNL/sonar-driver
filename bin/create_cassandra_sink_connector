@@ -30,6 +30,8 @@ def parse_args():
             help="Cassandra username to ingest with (REQUIRED)")
     parser.add_argument('-p', '--cassandra-password-file', required=True,
             help="Cassandra password file to authenticate with (REQUIRED)")
+    parser.add_argument('-d', '--delete-sunk-kafka-records', action="store_true",
+                        help="Whether to delete Kafka records after they are sunk into Cassandra")
 
     parser.add_argument('topic', help="topic to consume from")
     parser.add_argument('keyspace', type=str, help="Cassandra keyspace to ingest into")
@@ -62,7 +64,8 @@ def main():
                 args.cassandra_hosts,
                 args.cassandra_port,
                 kcql=None, # possible TODO: make this configurable
-                tasks_max=args.tasks_max
+                tasks_max=args.tasks_max,
+                delete_sunk_kafka_records=args.delete_sunk_kafka_records
             )
         )
         
