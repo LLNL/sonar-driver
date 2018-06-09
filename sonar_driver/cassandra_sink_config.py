@@ -16,6 +16,7 @@ class CassandraSinkConfig(ConnectorConfig):
     CASSANDRA_USERNAME_KEY  = "connect.cassandra.username"
     CASSANDRA_PASSFILE_KEY  = "connect.cassandra.password.file"
     KCQL_KEY                = "connect.cassandra.kcql"
+    DELETE_SUNK_KEY         = "delete.sunk.kafka.records"
 
     def __init__(self, 
             topics, 
@@ -26,7 +27,8 @@ class CassandraSinkConfig(ConnectorConfig):
             cassandra_hosts=['localhost'],
             cassandra_port=9042,
             kcql=None, # will be inferred
-            tasks_max=1):
+            tasks_max=1,
+            delete_sunk_kafka_records=True):
 
         super().__init__(tasks_max)
 
@@ -36,6 +38,7 @@ class CassandraSinkConfig(ConnectorConfig):
         self.config_dict[self.CASSANDRA_PORT_KEY]       = cassandra_port
         self.config_dict[self.CASSANDRA_USERNAME_KEY]   = cassandra_username
         self.config_dict[self.CASSANDRA_PASSFILE_KEY]   = cassandra_password_file
+        self.config_dict[self.DELETE_SUNK_KEY]          = delete_sunk_kafka_records
 
         if kcql is None:
             self.config_dict[self.KCQL_KEY] = "INSERT INTO " + table + " SELECT * FROM " + topics
