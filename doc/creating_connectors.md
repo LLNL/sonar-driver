@@ -54,7 +54,7 @@ See `create_directory_source_connector --help` for more details.
 The following command:
 
 ```bash
-create_cassandra_sink_connector -u theuser -p passfile mykey mytable
+create_cassandra_sink_connector -u theuser -p passfile mytopic mykey mytable
 ```
 
 will produce:
@@ -63,16 +63,17 @@ will produce:
 {
     "config": {
         "connect.cassandra.contact.points": "localhost",
-        "connect.cassandra.kcql": "INSERT INTO mytable SELECT * FROM t1527300675.8762176-mykey.mytable",
+        "connect.cassandra.kcql": "INSERT INTO mytable SELECT * FROM mytopic",
         "connect.cassandra.key.space": "mykey",
         "connect.cassandra.password.file": "passfile",
         "connect.cassandra.port": "9042",
         "connect.cassandra.username": "theuser",
         "connector.class": "com.datamountaineer.streamreactor.connect.cassandra.sink.CassandraSinkConnector",
+	"delete.sunk.kafka.records": "false",
         "tasks.max": "1",
-        "topic": "t1527300675.8762176-mykey.mytable"
+        "topic": "mytopic"
     },
-    "name": "cassandra_sink-t1527300675.8762176-mykey.mytable"
+    "name": "cassandra_sink-mytopic"
 }
 ```
 

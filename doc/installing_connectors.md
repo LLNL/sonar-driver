@@ -9,13 +9,13 @@ Invoke with `--dry/-d` or `--debug/-g` to see the ensuing REST commands.
 Specify the Kafka REST endpoint either in the command line:
 
 ```bash
-install_connector --kafka-rest-url http://sonar8 --kafka-rest-port 8083 ...
+install_connectors --kafka-rest-url http://sonar8 --kafka-rest-port 8083 ...
 ```
 
 ...or using environment variables:
 
 ```bash
-KAFKA_REST_URL=http://sonar8 KAFKA_REST_PORT=8083 install_connector ...
+KAFKA_REST_URL=http://sonar8 KAFKA_REST_PORT=8083 install_connectors ...
 ```
 
 ## Installing Connectors
@@ -23,7 +23,7 @@ KAFKA_REST_URL=http://sonar8 KAFKA_REST_PORT=8083 install_connector ...
 If you have created connectors `my_source.json` and `my_sink.json`, simply:
 
 ```bash
-install_connector my_source.json my_sink.json
+install_connectors my_source.json my_sink.json
 ```
 
 You can also pipe the output of a connector creator script into `install_connectors -`, which reads from stdin.
