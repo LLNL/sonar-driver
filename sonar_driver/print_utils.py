@@ -4,6 +4,7 @@ Printing Utilities
 
 from __future__ import print_function
 import json
+import sys
 
 from pygments import highlight, lexers, formatters
 
