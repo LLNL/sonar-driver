@@ -55,7 +55,7 @@ class CassandraSession():
         for x in range(2):
 
             if token is None:
-                token = CassandraSession.get_crowd_token_interactive(self.hosts)
+                token = self.get_crowd_token_interactive()
 
             auth_provider = PlainTextAuthProvider(username=self.username, password=token) 
             cluster = Cluster(self.hosts, auth_provider=auth_provider)
