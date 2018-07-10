@@ -4,32 +4,95 @@ from cassandra.cluster import Cluster
 from cassandra.auth import PlainTextAuthProvider
 from cassandra.cluster import NoHostAvailable
 from cassandra import AuthenticationFailed
-from sonar_driver.print_utils import pretty_print
+
+import getpass
+
+from sonar_driver.print_utils import pretty_print, eprint
+
 
 class CassandraSession():
-    def __init__(self, username, password_filename, hosts=['localhost'], port=9042, dry=False, debug=False):
+    def __init__(self, password_filename=None, password_token=None, hosts=['localhost'], port=9042, dry=False, debug=False):
+
         self.dry = dry
         self.debug = debug
-        self.username = username
+        self.username = getpass.getuser()
         self.hosts = hosts
+        self.hosts_string = ','.join(hosts)
 
-        if self.debug:
-            print("Connecting to Cassandra hosts {} with username '{}' and password file '{}'".format(self.hosts, self.username, password_filename))
-
-        if not self.dry:
-            with open(password_filename, 'r') as password_file:
-                password=password_file.read().replace('\n', '')
-
-            auth_provider = PlainTextAuthProvider(username=self.username, password=password)
-            cluster = Cluster(self.hosts, port=port, auth_provider=auth_provider)
+        password_args = sum(1 for p in [password_filename, password_token] if p is not None)
+        if (password_args > 1):
+            raise Exception("Multiple password arguments were supplied! Failing due to ambiguity.")
 
         if not self.dry:
+
+            # Use a password arg
+            if (password_args == 1):
+                if password_filename is not None:
+                    with open(password_filename, 'r') as password_file:
+                        password = password_file.read().replace('\n', '')
+                elif password_token is not None:
+                    self.token = password_token
+                    password = password_token
+
+                auth_provider = PlainTextAuthProvider(username=self.username, password=password)
+                cluster = Cluster(self.hosts, port=port, auth_provider=auth_provider)
+
+                self.session = cluster.connect()
+
+            # Interactively authenticate
+            else:
+                self.init_interactive(hosts)
+
+    def get_crowd_token(self):
+        query = "SELECT value FROM {}_k.tokencache WHERE attribute='encrypted token'".format(self.username)
+        results = self.session.execute(query, timeout=None)
+        return results[0].value
+
+    def init_interactive(self, token=None):
+
+        for x in range(2): # 2 retries
+
+            if token is None:
+                token = CassandraSession.get_crowd_token_interactive(self.hosts)
+
+            auth_provider = PlainTextAuthProvider(username=self.username, password=token) 
+            cluster = Cluster(self.hosts, auth_provider=auth_provider)
+
             try:
                 self.session = cluster.connect()
-            except NoHostAvailable:
-                raise Exception("Cassandra hosts '{}' unavailable!".format(self.hosts))
-            except AuthenticationFailed:
-                raise Exception("Cassandra user '{}' unauthorized to connect to hosts '{}'!".format(self.username,self.hosts))
+                self.token = token # success!
+            except NoHostAvailable as e:
+                if isinstance(list(e.errors.values())[0], AuthenticationFailed):
+                    eprint("Token authentication failure")
+                    token = None
+                    continue
+
+    def get_crowd_token_interactive(self):
+
+        for x in range(3): # 3 retries
+
+            password = getpass.getpass("Enter LC Pin+OTP for user {}:".format(self.username))
+            clear_output()
+
+            auth_provider = PlainTextAuthProvider(username=self.username, password=password) 
+            cluster = Cluster(self.hosts, auth_provider=auth_provider)
+
+            try:
+                self.session = cluster.connect()
+                self.token = self.get_crowd_token()
+                self.session.shutdown()
+
+                return self.token
+
+            except NoHostAvailable as e:
+                if isinstance(list(e.errors.values())[0], AuthenticationFailed):
+                    eprint("Pin+OTP Authentication Failure")
+                    continue
+
+            except IndexError:
+                eprint("Encrypted token not found! Contact Cassandra system administrator.")
+
+        raise AuthenticationFailed("Could not get CROWD token for user {}".format(self.username))
 
     def table_exists(self, keyspace, table):
 
