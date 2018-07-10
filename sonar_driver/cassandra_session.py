@@ -1,4 +1,5 @@
 from pygments import lexers
+from IPython.display import clear_output
 
 from cassandra.cluster import Cluster
 from cassandra.auth import PlainTextAuthProvider
@@ -50,7 +51,8 @@ class CassandraSession():
 
     def init_interactive(self, token=None):
 
-        for x in range(2): # 2 retries
+        # 2 retries
+        for x in range(2):
 
             if token is None:
                 token = CassandraSession.get_crowd_token_interactive(self.hosts)
@@ -69,7 +71,8 @@ class CassandraSession():
 
     def get_crowd_token_interactive(self):
 
-        for x in range(3): # 3 retries
+        # 3 retries
+        for x in range(3):
 
             password = getpass.getpass("Enter LC Pin+OTP for user {}:".format(self.username))
             clear_output()

@@ -20,6 +20,7 @@ setup(
     install_requires=[
         'cassandra-driver',
         'requests',
-        'pygments'
+        'pygments',
+        'ipython'
     ]
 )
