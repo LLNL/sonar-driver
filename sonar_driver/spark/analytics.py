@@ -7,8 +7,8 @@ from pyspark.sql.types import DoubleType
 def split_dataframes(sparkdf, column):
     """
     Split a dataframe into multiple dataframes by distinct values along a column.
-    :param sparkdf: Input Spark dataframe
-    :param column: Column name to split over
+    :param sparkdf: Input Spark dataframe.
+    :param column: Column name to split over.
     :return: A list of Spark dataframes, where each has a cardinality of 1 in the column.
     """
 
@@ -25,14 +25,16 @@ def split_dataframes(sparkdf, column):
     ]
 
 
-def finite_difference(sparkdf, xaxis, yaxes, window_size):
+def finite_difference(sparkdf, xaxis, yaxes, window_size, monotonically_increasing=False):
     """
     Calculate the finite difference dY/dX for 1 or more Y=f(X) axes with respect to a single X axis
-    :param sparkdf: Input Spark dataframe
-    :param xaxis: Column name for X axis
-    :param yaxes: List of column names for Y axes
-    :param window_size: Width of window over which to calculate finite difference (in number of points)
-    :return: A Spark dataframe with one new column per Y axis calculated as dY/dX
+    :param sparkdf: Input Spark dataframe.
+    :param xaxis: Column name for X axis.
+    :param yaxes: List of column names for Y axes.
+    :param window_size: Width of window over which to calculate finite difference (in number of points).
+    :param monotonically_increasing: Whether Y axes should be monotonically increasing (e.g. counters). If set,
+           negative finite differences in Y will be set to zero.
+    :return: A Spark dataframe with one new column per Y axis calculated as dY/dX.
     """
 
     original_columns = sparkdf.schema.fieldNames()
@@ -74,6 +76,13 @@ def finite_difference(sparkdf, xaxis, yaxes, window_size):
                 .withColumn(yaxis, sparkdf[yaxis].cast(DoubleType()))
                 .withColumn(yaxis_lag, lag(yaxis, window_size, first_y).over(window))
                 .withColumn(yaxis_delta, delta_fn(col(yaxis), col(yaxis_lag)))
+        )
+
+        if monotonically_increasing:
+            df[yaxis_delta] = df[yaxis_delta].map(lambda d: max(0, d))
+
+        df = (
+            df
                 .withColumn(rate, div_fn(col(yaxis_delta), col(xaxis_delta)))
                 .drop(yaxis_lag)
                 .drop(yaxis_delta)
