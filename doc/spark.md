@@ -8,13 +8,14 @@ on Sonar, optionally with support for connecting Spark to Cassandra.
 Use the following to construct a Sonar Spark session:
 
 ```python
-import sonar_driver.spark.session.SonarSparkSession
+from sonar_driver.spark.session import SonarSparkSession
 
-sonar_spark = SonarSparkSession(spark_home,
-                 sonar_cassandra_session=None,
-                 spark_opts={'master': 'local[*]'},
-                 java_home='/usr/lib/jvm/java-1.8.0/',
-                 trust_store='/etc/pki/ca-trust/extracted/java/cacerts'):
+sonar_spark = SonarSparkSession(spark_home='path/to/spark',
+                 sonar_cassandra_session=None,                          # default
+                 spark_opts={'master': 'local[*]'},                     # default
+                 java_home='/usr/lib/jvm/java-1.8.0/',                  # default
+                 trust_store='/etc/pki/ca-trust/extracted/java/cacerts' # default
+             )
 ```
 
 ### Parameters
