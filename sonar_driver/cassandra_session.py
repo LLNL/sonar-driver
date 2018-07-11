@@ -11,7 +11,7 @@ import getpass
 from sonar_driver.print_utils import pretty_print, eprint
 
 
-class CassandraSession():
+class SonarCassandraSession():
     def __init__(self, password_filename=None, password_token=None, hosts=['localhost'], port=9042, dry=False, debug=False):
 
         self.dry = dry
@@ -129,9 +129,9 @@ class CassandraSession():
 
         if isinstance(avro_dtype, dict):
             if avro_dtype['type'] == 'array':
-                return "list<" + CassandraSession.avro2cass(avro_dtype['values']) + ">"
+                return "list<" + SonarCassandraSession.avro2cass(avro_dtype['values']) + ">"
             elif avro_dtype['type'] == 'map':
-                return "map<text," + CassandraSession.avro2cass(avro_dtype['values']) + ">"
+                return "map<text," + SonarCassandraSession.avro2cass(avro_dtype['values']) + ">"
 
         return AVRO_CASSANDRA_TYPEMAP[avro_dtype] if avro_dtype in AVRO_CASSANDRA_TYPEMAP else avro_dtype
 
@@ -151,8 +151,8 @@ class CassandraSession():
 
         
         avro_json = avro_schema.to_json()
-        columns_clause = ', '.join(map(lambda f: "\"" + f['name'] + "\"" + ' ' + CassandraSession.avro2cass(f['type']), avro_json['fields']))
-        primary_key_clause = CassandraSession.primary_key(partition_key, cluster_key)
+        columns_clause = ', '.join(map(lambda f: "\"" + f['name'] + "\"" + ' ' + SonarCassandraSession.avro2cass(f['type']), avro_json['fields']))
+        primary_key_clause = SonarCassandraSession.primary_key(partition_key, cluster_key)
 
         create_query = "CREATE TABLE {}.{} ({}, PRIMARY KEY {})".format(keyspace, table, columns_clause, primary_key_clause)
 

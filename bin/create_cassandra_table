@@ -9,7 +9,7 @@ import traceback
 import avro.schema
 
 from sonar_driver.print_utils import pretty_print
-from sonar_driver.cassandra_session import CassandraSession
+from sonar_driver.cassandra_session import SonarCassandraSession
 
 
 def parse_args():
@@ -67,7 +67,7 @@ def main():
             pretty_print(avro_schema.to_json(), title="Avro schema")
 
         # Check if Cassandra table exists, and if not, try to make it
-        cassandra_session = CassandraSession(
+        cassandra_session = SonarCassandraSession(
             args.cassandra_username, 
             args.cassandra_password_file, 
             hosts=args.cassandra_hosts,

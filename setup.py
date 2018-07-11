@@ -21,6 +21,8 @@ setup(
         'cassandra-driver',
         'requests',
         'pygments',
-        'ipython'
+        'ipython',
+        'findspark',
+        'pyspark'
     ]
 )
