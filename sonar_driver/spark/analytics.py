@@ -4,6 +4,27 @@ from pyspark.sql.functions import udf, col
 from pyspark.sql.types import DoubleType
 
 
+def split_dataframes(sparkdf, column):
+    """
+    Split a dataframe into multiple dataframes by distinct values along a column.
+    :param sparkdf: Input Spark dataframe
+    :param column: Column name to split over
+    :return: A list of Spark dataframes, where each has a cardinality of 1 in the column.
+    """
+
+    # Get distinct values
+    distinct_values = [
+        row[column] for row in
+        sparkdf.select(column).distinct().collect()
+    ]
+
+    # Filter by each distinct value
+    return [
+        sparkdf.filter(col(column) == value)
+        for value in distinct_values
+    ]
+
+
 def finite_difference(sparkdf, xaxis, yaxes, window_size):
     """
     Calculate the finite difference dY/dX for 1 or more Y=f(X) axes with respect to a single X axis
