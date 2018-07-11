@@ -2,6 +2,11 @@
 
 This library contains the logic to drive Sonar, including:
 
+### Analysis
+* [Connecting to Sonar's Cassandra Database](./doc/cassandra.md)
+* [Running Spark on Sonar](./doc/spark.md)
+
+### Ingestion
 * [Creating Kafka Connect sources and sinks](./doc/creating_connectors.md)
 * [Installing and uninstalling Kafka Connect sources and sinks](./doc/installing_connectors.md)
 * [Creating Cassandra tables from Avro schema files](./doc/creating_cassandra_tables.md)

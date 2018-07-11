@@ -11,6 +11,8 @@ class SonarSparkSession:
                  java_home='/usr/lib/jvm/java-1.8.0/',
                  trust_store='/etc/pki/ca-trust/extracted/java/cacerts'):
 
+        self.sonar_cassandra_session = sonar_cassandra_session
+
         # Setup Java, Spark env variables
         os.environ['JAVA_HOME'] = java_home
         os.environ['JAVA_OPTS'] = '-Djavax.net.ssl.trustStore=' + trust_store
