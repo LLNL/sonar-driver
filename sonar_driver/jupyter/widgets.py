@@ -22,11 +22,10 @@ class DateRangeSlider:
             layout={'width': '100%'}
         )
 
-        def on_change(ch, names='value'):
-            global self
-            self.start_datetime = selection_range_slider.get_interact_value()[0]
-            self.end_datetime = selection_range_slider.get_interact_value()[0]
-
-        selection_range_slider.observe(on_change)
+        selection_range_slider.observe(self.on_change)
 
         self.widget = selection_range_slider
+
+    def on_change(self):
+        self.start_datetime = self.widget.get_interact_value()[0]
+        self.end_datetime = self.widget.get_interact_value()[0]
