@@ -23,6 +23,8 @@ setup(
         'pygments',
         'ipython',
         'findspark',
-        'pyspark'
+        'pyspark',
+        'pandas',
+        'ipywidgets'
     ]
 )
