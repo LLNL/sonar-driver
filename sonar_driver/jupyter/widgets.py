@@ -26,6 +26,6 @@ class DateRangeSlider:
 
         self.widget = selection_range_slider
 
-    def on_change(self):
+    def on_change(self, dummy):
         self.start_datetime = self.widget.get_interact_value()[0]
         self.end_datetime = self.widget.get_interact_value()[0]
