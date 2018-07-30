@@ -1,7 +1,7 @@
 from pyspark.sql.functions import lead, lag
 from pyspark.sql.window import Window
-from pyspark.sql.functions import udf, col
-from pyspark.sql.types import DoubleType, StringType
+from pyspark.sql.functions import udf, col, explode, lit, split
+from pyspark.sql.types import DoubleType, StringType, TimestampType
 
 
 def split_dataframes(sparkdf, column):
@@ -110,49 +110,82 @@ def query_time_range(sparkdf, from_time, to_time, column=None):
            will be within time range. 
     :return: A Spark dataframe with jobs whose start times or end times are within specified time range.
     """
-    col1, col2 = 'StartTime', 'EndTime'
-    if column:
-        col1, col2 = column, column
-        
     return (
         sparkdf
-            .withColumn('FromTime', lit(from_time).cast(Timestamp()))
-            .withColumn('ToTime', lit(to_time).cast(Timestamp()))
-            .filter("{} > FromTime AND {} < ToTime".format(col1, col2))
+            .withColumn('FromTime', lit(from_time).cast(TimestampType()))
+            .withColumn('ToTime', lit(to_time).cast(TimestampType()))
+            .filter("{} > FromTime AND {} < ToTime".format(column, column))
             .drop('FromTime')
             .drop('ToTime')
     )
 
 def discrete_derivatives(sparkdf, column, window_size, slide_length):
     """
-    Calculate the discrete derivatives (job initiation or completion rate).
+    Calculate discrete derivatives (job initiation rate or job completion rate).
     :param sparkdf: Input Spark dataframe.
     :param column: 'StartTime' for initiation rate and 'EndTime' for completion rate.
     :param window_size: Time range (secs) over which to calculate derivatives.
     :param slide_length: Amount of time (secs) to slide window at each step.
     :return: A Spark dataframe with discrete derivative calculated at each timestep.
     """
-    df = sparkdf
-    
-    for dtype in sparkdf.dtypes:
-        if dtype[1] == 'timestamp':
-            df = df.withColumn(dtype[0], col(dtype[0]).cast(DoubleType()))
+    sparkdf = cast_double(sparkdf)
             
     def range_windows(column, window, slide):
         first = int(window + slide * ((column - window) // slide + 1))
         last = int(window + slide * (column // slide))
-        range_list = ""
-        for x in range(0, (last - first) // slide + 1):
-            range_list = range_list + str(first + slide * x) + ','
-        return range_list[:-1]
+        return range_list(first, last, slide)
     range_windows = udf(range_windows, StringType())
     
     return (
-        df
+        sparkdf
             .withColumn('Range', split(range_windows(col(column), lit(window_size), lit(slide_length)), ','))
             .select(explode(col('Range')).alias('Time'))
             .select(col('Time').cast(DoubleType()).cast(TimestampType())).groupBy('Time').count().sort('Time')
+            .withColumn('count', udf(lambda x: x / window_size, DoubleType())(col('count')))
     )
+
+def discrete_integrals(sparkdf, slide_length):
+    """
+    Calculate discrete integrals (number of active jobs vs. time).
+    :param sparkdf: Input Spark dataframe.
+    :param slide_length: Amount of time (secs) between each timestep.
+    :return: A Spark dataframe with discrete integral calculated at each timestep.
+    """
+    sparkdf = cast_double(sparkdf)
+            
+    def range_times(col1, col2, slide):
+        first = int((col1 // slide + 1) * slide)
+        last = int((col2 // slide) * slide)
+        if first > last:
+            return ""
+        return range_list(first, last, slide)
+    range_times = udf(range_times, StringType())
+    
+    return (
+        sparkdf
+            .withColumn('Range', split(range_times(col('StartTime'), col('EndTime'), lit(slide_length)), ','))
+            .select(explode(col('Range')).alias('Time'))
+            .select(col('Time').cast(DoubleType()).cast(TimestampType())).groupBy('Time').count().sort('Time')
+            .where(col('Time').isNotNull())
+    )
+
+def cast_double(sparkdf):
+    """
+    Helper function to cast columns of type 'timestamp' to type 'double.'
+    """
+    for dtype in sparkdf.dtypes:
+        if dtype[1] == 'timestamp':
+            sparkdf = sparkdf.withColumn(dtype[0], col(dtype[0]).cast(DoubleType()))
+    return sparkdf
+
+def range_list(first, last, slide):
+    """
+    Helper function for discrete_derivatives and discrete_integrals functions.
+    """
+    range_list = ""
+    for x in range(0, (last - first) // slide + 1):
+        range_list = range_list + str(first + slide * x) + ','
+    return range_list[:-1]
 
     
     
