@@ -1,7 +1,7 @@
 from pyspark.sql.functions import lead, lag
 from pyspark.sql.window import Window
 from pyspark.sql.functions import udf, col
-from pyspark.sql.types import DoubleType
+from pyspark.sql.types import DoubleType, StringType
 
 
 def split_dataframes(sparkdf, column):
@@ -99,3 +99,60 @@ def finite_difference(sparkdf, xaxis, yaxes, window_size, monotonically_increasi
         )
 
     return df.drop(xaxis_delta)
+
+def query_time_range(sparkdf, from_time, to_time, column=None):
+    """
+    Query jobs within a time range.
+    :param sparkdf: Input Spark dataframe.
+    :param from_time: Start of time range.
+    :param to_time: End of time range.
+    :param column: If set, only start times (column='StartTime') or end times (column='EndTime') 
+           will be within time range. 
+    :return: A Spark dataframe with jobs whose start times or end times are within specified time range.
+    """
+    col1, col2 = 'StartTime', 'EndTime'
+    if column:
+        col1, col2 = column, column
+        
+    return (
+        sparkdf
+            .withColumn('FromTime', lit(from_time).cast(Timestamp()))
+            .withColumn('ToTime', lit(to_time).cast(Timestamp()))
+            .filter("{} > FromTime AND {} < ToTime".format(col1, col2))
+            .drop('FromTime')
+            .drop('ToTime')
+    )
+
+def discrete_derivatives(sparkdf, column, window_size, slide_length):
+    """
+    Calculate the discrete derivatives (job initiation or completion rate).
+    :param sparkdf: Input Spark dataframe.
+    :param column: 'StartTime' for initiation rate and 'EndTime' for completion rate.
+    :param window_size: Time range (secs) over which to calculate derivatives.
+    :param slide_length: Amount of time (secs) to slide window at each step.
+    :return: A Spark dataframe with discrete derivative calculated at each timestep.
+    """
+    df = sparkdf
+    
+    for dtype in sparkdf.dtypes:
+        if dtype[1] == 'timestamp':
+            df = df.withColumn(dtype[0], col(dtype[0]).cast(DoubleType()))
+            
+    def range_windows(column, window, slide):
+        first = int(window + slide * ((column - window) // slide + 1))
+        last = int(window + slide * (column // slide))
+        range_list = ""
+        for x in range(0, (last - first) // slide + 1):
+            range_list = range_list + str(first + slide * x) + ','
+        return range_list[:-1]
+    range_windows = udf(range_windows, StringType())
+    
+    return (
+        df
+            .withColumn('Range', split(range_windows(col(column), lit(window_size), lit(slide_length)), ','))
+            .select(explode(col('Range')).alias('Time'))
+            .select(col('Time').cast(DoubleType()).cast(TimestampType())).groupBy('Time').count().sort('Time')
+    )
+
+    
+    
