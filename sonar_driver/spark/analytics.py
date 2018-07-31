@@ -100,28 +100,34 @@ def finite_difference(sparkdf, xaxis, yaxes, window_size, monotonically_increasi
 
     return df.drop(xaxis_delta)
 
-def query_time_range(sparkdf, from_time, to_time, column=None):
+def query(sparkdf, time_range=None, clusters=None):
     """
     Query jobs within a time range.
     :param sparkdf: Input Spark dataframe.
-    :param from_time: Start of time range.
-    :param to_time: End of time range.
-    :param column: If set, only start times (column='StartTime') or end times (column='EndTime') 
-           will be within time range. 
+    :param time_range: List, array-like of time range start and end and optional third argument which, if set,
+           only start times ('StartTime') or end times ('EndTime') will be within time range. 
+    :param clusters: List, array-like of clusters to filter.
     :return: A Spark dataframe with jobs whose start times or end times are within specified time range.
     """
-    col1, col2 = 'StartTime', 'EndTime'
-    if column:
-        col1, col2 = column, column
+    if time_range:
+        start_range, end_range = time_range[0], time_range[1]
         
-    return (
-        sparkdf
-            .withColumn('FromTime', lit(from_time).cast(TimestampType()))
-            .withColumn('ToTime', lit(to_time).cast(TimestampType()))
-            .filter("{} > FromTime AND {} < ToTime".format(col1, col2))
-            .drop('FromTime')
-            .drop('ToTime')
-    )
+        column = None if len(time_range) == 2 else time_range[2]
+        col1, col2 = column if column else 'StartTime', column if column else 'EndTime'
+        
+        sparkdf = (
+            sparkdf
+                .withColumn('StartRange', lit(start_range).cast(TimestampType()))
+                .withColumn('EndRange', lit(end_range).cast(TimestampType()))
+                .filter("{} > StartRange AND {} < EndRange".format(col1, col2))
+                .drop('StartRange')
+                .drop('EndRange')
+        )
+    
+    if clusters:
+        sparkdf = sparkdf.filter(sparkdf.Cluster.isin(*clusters) == True)
+        
+    return sparkdf
 
 def discrete_derivatives(sparkdf, column, window_size, slide_length):
     """
