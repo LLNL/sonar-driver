@@ -197,5 +197,82 @@ def range_list(first, last, slide):
         range_list = range_list + str(first + slide * x) + ','
     return range_list[:-1]
 
+def allocs_sorted(sparkdf):
+    pandasdf = sparkdf.toPandas()
+    
+    starts_dict = dict(zip(pandasdf['alloc_time'], pandasdf['size']))
+    ends_dict = dict(zip(pandasdf['free_time'], pandasdf['size']))
+    starts_sorted = sorted(starts_dict)
+    ends_sorted = sorted(ends_dict)
+    
+    return starts_dict, ends_dict, starts_sorted, ends_sorted
+
+def pool_counts(sparkdf):
+    starts_dict, ends_dict, starts_sorted, ends_sorted = allocs_sorted(sparkdf)
+
+    size_groups = {s:{'current': 0, 'max': 0} for s in [r.size for r in sparkdf.select('size').distinct().collect()]}
+    
+    start_index, end_index = 0, 0
+    while start_index < len(starts_sorted) or end_index < len(ends_sorted):
+        start, end = None, ends_sorted[end_index]
+        if start_index < len(starts_sorted):
+            start = starts_sorted[start_index]
+
+        if start is None or start > end:
+            group = size_groups[ends_dict[end]]
+            group['current'] -= 1
+            end_index += 1
+        else:
+            group = size_groups[starts_dict[start]]
+            group['current'] += 1
+            if group['current'] > group['max']:
+                group['max'] = group['current']
+            start_index += 1
+    
+    return [{'size': int(s), 'count': int(size_groups[s]['max'])} for s in size_groups.keys()]
+    
+def max_memory_unpooled(sparkdf):
+    starts_dict, ends_dict, starts_sorted, ends_sorted = allocs_sorted(sparkdf)
+    
+    active_memory = {'current': 0, 'max': 0}
+    
+    start_index, end_index = 0, 0
+    while start_index < len(starts_sorted) or end_index < len(ends_sorted):
+        start, end = None, ends_sorted[end_index]
+        if start_index < len(starts_sorted):
+            start = starts_sorted[start_index]
+
+        if start is None or start > end:
+            active_memory['current'] -= ends_dict[end]
+            end_index += 1
+        else:
+            active_memory['current'] += starts_dict[start]
+            if active_memory['current'] > active_memory['max']:
+                active_memory['max'] = active_memory['current']
+            start_index += 1
+
+    return active_memory['max']
+
+def max_memory_pooled(sparkdf):
+    pools = pool_counts(sparkdf)
+    return sum([p['size'] * p['count'] for p in pools])
+
+def total_bytesecs_unpooled(sparkdf):
+    calc_bytesecs = udf(lambda size, alloc, free: size * (free - alloc), DoubleType())
+
+    return (
+        sparkdf
+            .withColumn('bytesecs', calc_bytesecs(col('size'), col('alloc_time'), col('free_time')))
+    ).rdd.map(lambda x: float(x["bytesecs"])).reduce(lambda x, y: x+y) / 1e9
+
+def total_bytesecs_pooled(sparkdf):
+    pools = pool_counts(sparkdf)
+    
+    min_time = sparkdf.agg({"alloc_time": "min"}).collect()[0][0] / 1e9
+    max_time = sparkdf.agg({"free_time": "max"}).collect()[0][0] / 1e9
+    range_time = max_time - min_time
+
+    return sum([p['size'] * p['count'] * range_time for p in pools])
+
     
     
