@@ -110,11 +110,15 @@ def query_time_range(sparkdf, from_time, to_time, column=None):
            will be within time range. 
     :return: A Spark dataframe with jobs whose start times or end times are within specified time range.
     """
+    col1, col2 = 'StartTime', 'EndTime'
+    if column:
+        col1, col2 = column, column
+        
     return (
         sparkdf
             .withColumn('FromTime', lit(from_time).cast(TimestampType()))
             .withColumn('ToTime', lit(to_time).cast(TimestampType()))
-            .filter("{} > FromTime AND {} < ToTime".format(column, column))
+            .filter("{} > FromTime AND {} < ToTime".format(col1, col2))
             .drop('FromTime')
             .drop('ToTime')
     )
