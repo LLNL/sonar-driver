@@ -1,7 +1,9 @@
+import re
+
 from pyspark.sql.functions import lead, lag
 from pyspark.sql.window import Window
 from pyspark.sql.functions import udf, col, explode, lit, split
-from pyspark.sql.types import DoubleType, StringType, TimestampType
+from pyspark.sql.types import BooleanType, DoubleType, StringType, TimestampType
 
 
 def split_dataframes(sparkdf, column):
@@ -100,13 +102,15 @@ def finite_difference(sparkdf, xaxis, yaxes, window_size, monotonically_increasi
 
     return df.drop(xaxis_delta)
 
-def query(sparkdf, time_range=None, clusters=None):
+def query_jobs(sparkdf, time_range=None, nodes=None, users=None):
     """
-    Query jobs within a time range.
+    Query jobs within a time range, on certain clusters, nodes, and run by certain users.
     :param sparkdf: Input Spark dataframe.
     :param time_range: List, array-like of time range start and end and optional third argument which, if set,
            only start times ('StartTime') or end times ('EndTime') will be within time range. 
-    :param clusters: List, array-like of clusters to filter.
+    :param nodes: List, array-like of clusters and nodes to filter. Format should follow this example:
+           ['rztrona', rzgenie8', 'rztopaz[10-12]', 'rzalastor[1-2,3-4]'].
+    :param users: List, array-like of users to query.
     :return: A Spark dataframe with jobs whose start times or end times are within specified time range.
     """
     if time_range:
@@ -123,9 +127,65 @@ def query(sparkdf, time_range=None, clusters=None):
                 .drop('StartRange')
                 .drop('EndRange')
         )
-    
-    if clusters:
-        sparkdf = sparkdf.filter(sparkdf.Cluster.isin(*clusters) == True)
+        
+    if nodes:
+        def cluster_nodes(node):
+            if '[' in node:
+                splits = [i for i, v in enumerate(node) if 
+                          v == '-' or v == ',' or v == '[' or v == ']']
+                
+                cluster_name = node[:splits[0]]
+                node_lst = []
+                for i in range(len(splits) - 1):
+                    node_lst.append(int(node[splits[i] + 1: splits[i + 1]]))
+                    
+                return cluster_name, node_lst
+            
+            elif node.isalpha():
+                return node, 0
+            
+            else:
+                m = re.search("\d", node)
+                i = m.start()
+                cluster_name, node_num = node[:i], int(node[i:])
+                return cluster_name, [node_num, node_num]
+            
+        def isin_nodes(node):
+            input_nodes = {}
+            for n in nodes:
+                cluster_name, node_lst = cluster_nodes(n)
+                input_nodes[cluster_name] = node_lst
+                
+            cluster_name, node_lst = cluster_nodes(node)
+            if cluster_name in input_nodes:
+                input_node_lst = input_nodes[cluster_name]
+                
+                if input_node_lst == 0:
+                    return True
+                
+                for i in range(len(node_lst) // 2):
+                    on_nodes = False
+                    for j in range(len(input_node_lst) // 2):
+                        within_nodes = (
+                            node_lst[2 * i] >= input_node_lst[2 * j] and 
+                            node_lst[2 * i + 1] <= input_node_lst[2 * j + 1]
+                        )
+                        if within_nodes:
+                            on_nodes = True
+                            break
+                    
+                    if not on_nodes:
+                        return False
+                    
+                return True
+            
+            return False    
+        
+        isin_nodes = udf(isin_nodes, BooleanType())
+        sparkdf = sparkdf.filter(isin_nodes(sparkdf.NodeList))
+
+    if users:
+        sparkdf = sparkdf.filter(sparkdf.User.isin(*users) == True)
         
     return sparkdf
 
@@ -208,6 +268,11 @@ def allocs_sorted(sparkdf):
     return starts_dict, ends_dict, starts_sorted, ends_sorted
 
 def pool_counts(sparkdf):
+    """
+    Calculate minimum pools for each unique allocation size.
+    :param sparkdf: Input Spark dataframe.
+    :return: A list of dicts with size and count of each pool.
+    """
     starts_dict, ends_dict, starts_sorted, ends_sorted = allocs_sorted(sparkdf)
 
     size_groups = {s:{'current': 0, 'max': 0} for s in [r.size for r in sparkdf.select('size').distinct().collect()]}
@@ -232,6 +297,11 @@ def pool_counts(sparkdf):
     return [{'size': int(s), 'count': int(size_groups[s]['max'])} for s in size_groups.keys()]
     
 def max_memory_unpooled(sparkdf):
+    """
+    Calculate maximum active memory needed for an unpooled allocation configuration.
+    :param sparkdf: Input Spark dataframe.
+    :return: Float of maximum active memory for unpooled allocations.
+    """
     starts_dict, ends_dict, starts_sorted, ends_sorted = allocs_sorted(sparkdf)
     
     active_memory = {'current': 0, 'max': 0}
@@ -254,10 +324,21 @@ def max_memory_unpooled(sparkdf):
     return active_memory['max']
 
 def max_memory_pooled(sparkdf):
+    """
+    Calculate maximum active memory needed for a pooled allocation configuration.
+    :param sparkdf: Input Spark dataframe.
+    :return: Float of maximum active memory for pooled allocations.
+    """
     pools = pool_counts(sparkdf)
     return sum([p['size'] * p['count'] for p in pools])
 
 def total_bytesecs_unpooled(sparkdf):
+    """
+    Calculate total bytesecs (1 byte of memory allocated for 1 sec) needed for an 
+        unpooled allocation configuration.
+    :param sparkdf: Input Spark dataframe.
+    :return: Float of total bytesecs for unpooled allocations.
+    """
     calc_bytesecs = udf(lambda size, alloc, free: size * (free - alloc), DoubleType())
 
     return (
@@ -266,6 +347,12 @@ def total_bytesecs_unpooled(sparkdf):
     ).rdd.map(lambda x: float(x["bytesecs"])).reduce(lambda x, y: x+y) / 1e9
 
 def total_bytesecs_pooled(sparkdf):
+    """
+    Calculate total bytesecs (1 byte of memory allocated for 1 sec) needed for a
+        pooled allocation configuration.
+    :param sparkdf: Input Spark dataframe.
+    :return: Float of total bytesecs for pooled allocations.
+    """
     pools = pool_counts(sparkdf)
     
     min_time = sparkdf.agg({"alloc_time": "min"}).collect()[0][0] / 1e9
