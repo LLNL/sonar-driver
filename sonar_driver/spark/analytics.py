@@ -121,11 +121,10 @@ def query_jobs(sparkdf, time_range=None, nodes=None, users=None):
         
         sparkdf = (
             sparkdf
-                .withColumn('StartRange', lit(start_range).cast(TimestampType()))
-                .withColumn('EndRange', lit(end_range).cast(TimestampType()))
-                .filter("{} > StartRange AND {} < EndRange".format(col1, col2))
-                .drop('StartRange')
-                .drop('EndRange')
+                .where(
+                    (col(col1) > lit(start_range).cast(TimestampType())) & 
+                    (col(col2) < lit(end_range).cast(TimestampType()))
+                )
         )
         
     if nodes:
@@ -149,13 +148,13 @@ def query_jobs(sparkdf, time_range=None, nodes=None, users=None):
                 i = m.start()
                 cluster_name, node_num = node[:i], int(node[i:])
                 return cluster_name, [node_num, node_num]
-            
-        def isin_nodes(node):
-            input_nodes = {}
-            for n in nodes:
-                cluster_name, node_lst = cluster_nodes(n)
-                input_nodes[cluster_name] = node_lst
+        
+        input_nodes = {}
+        for n in nodes:
+            cluster_name, node_lst = cluster_nodes(n)
+            input_nodes[cluster_name] = node_lst
                 
+        def isin_nodes(node):
             cluster_name, node_lst = cluster_nodes(node)
             if cluster_name in input_nodes:
                 input_node_lst = input_nodes[cluster_name]
