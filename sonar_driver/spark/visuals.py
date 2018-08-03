@@ -1,7 +1,3 @@
-"""
-Plotting Utilities
-"""
-
 import plotly
 import plotly.graph_objs as go
 import numpy as np
@@ -15,25 +11,15 @@ output_notebook()
 def plot_analytics(x_axis, y_axis, plot_title=None, x_title=None, y_title=None):
     """
     General plotting function for a plotly graph.
-    
-    Parameters
-    ----------
-    x_axis : array-like
-        List of x values
-    y_axis : array-like
-        List of y values
-    plot_title : str, default None
-        Title of plot
-    x_title : str, default None
-        Title of x-axis
-    y_title : str, default None
-        Title of y-axis   
-
-    Returns
-    -------
-    None
+    :x_axis: List of x values.
+    :y_axis: List of y values.
+    :plot_title: Title of plot.
+    :x_title: Title of x-axis.
+    :y_title: Title of y-axis.   
+    :return: None.
     """
     plotly.offline.init_notebook_mode(connected=True)
+    
     plotly.offline.iplot({
         "data": [go.Scatter(x=x_axis, 
                             y=y_axis)],
@@ -42,76 +28,57 @@ def plot_analytics(x_axis, y_axis, plot_title=None, x_title=None, y_title=None):
                             yaxis=dict(title=y_title))
     })
 
-def plot_derivatives(df, column, slide_length, window_size):
+def plot_derivatives(sparkdf, column, window_size, slide_length):
     """
-    Plots job start/completion rate versus time for a specified window size and slide length. Window size
-    is the amount of time ranging between two timesteps and slide length is the increment of a window 
-    as it progresses through time.
-    
-    Parameters
-    ----------
-    df : DataFrame
-        Pandas DataFrame of timesteps and number of jobs started/completed at the window of each
-        timestep
-    column : str
-        Can either be 'StartTime' or 'EndTime' to specify job start or job completion rate, respectively
-    slide_length : int
-        Slide length of window measurements
-    window_size : int
-        Amount of time to measure job start/completion rate
-    
-    Returns
-    -------
-    None
+    Plots job start/completion rate versus time for a specified window size and slide length. 
+    :sparkdf: Spark DataFrame of timesteps and rate of jobs started/completed at each window.
+    :column: Can either be 'StartTime' or 'EndTime' to specify job start or job completion rate, respectively.
+    :window_size: Window size of discrete derivatives.
+    :slide_length: Slide length of window measurements.
+    :return: None.
     """
+    df = sparkdf.toPandas()
+    
     x_axis = df['Time']
-    y_axis = np.array(df['count']) / window_size
+    y_axis = df['count']
+    
     verb = "Completed" if column == "EndTime" else "Started"
     plot_title = "Number of Jobs " + verb + " Per Sec, Window=" + str(window_size) + ", Slide=" + str(slide_length)
     x_title = "Time"
     y_title = "Jobs " + verb + "/Sec in Previous " + str(window_size) + " Sec"
+    
     plot_analytics(x_axis, y_axis, plot_title=plot_title, x_title=x_title, y_title=y_title)
 
-def plot_integrals(df, slide_length):
+def plot_integrals(sparkdf, slide_length):
     """
     Plots number of jobs running concurrently versus time with a specified slide length to determine timesteps.
-    
-    Parameters
-    ----------
-    df : DataFrame
-        Pandas DataFrame of timesteps and number of jobs running concurrently at each timestep
-    slide_length : int
-        Slide length of timesteps
-    
-    Returns
-    -------
-    None
+    :df: Spark DataFrame of timesteps and number of jobs running concurrently at each timestep.
+    :slide_length: Slide length of timesteps.
+    :return: None.
     """
+    df = sparkdf.toPandas()
+    
     x_axis = df['Time']
-    y_axis = df['count'][1:]
+    y_axis = df['count']
+    
     plot_title = "Number of Jobs Running vs. Time, Slide Length=" + str(slide_length)
     x_title = "Time"
     y_title = "Number of Jobs Running"
+    
     plot_analytics(x_axis, y_axis, plot_title=plot_title, x_title=x_title, y_title=y_title)
     
-def plot_bar_gantt(df, sizes, counts):
+def plot_bar_gantt(sparkdf, sizes, counts):
     """
     Plots a bar chart of total number of allocations for each allocation size and a linked gantt chart
     that groups allocations of the same size into non-overlapping pools.
     
-    Parameters
-    ----------
-    df : DataFrame
-        Pandas DataFrame of allocation data
-    sizes : array-like
-        A list of allocation sizes
-    counts : array-like
-        A list of counts for each allocation size
-    
-    Returns
-    -------
-    None
+    :df: Spark DataFrame of allocation data
+    :sizes: List of allocation sizes
+    :counts: List of counts for each allocation size
+    :return: None
     """
+    df = sparkdf.toPandas()
+    
     c0 = ColumnDataSource(data=df)
     c1 = ColumnDataSource(data=dict(Sizes=sizes, Counts=counts))
     c2 = ColumnDataSource(data=dict(Address=[], Size=[], Start=[], End=[], Bottom=[], Top=[], Pool=[]))
@@ -120,7 +87,7 @@ def plot_bar_gantt(df, sizes, counts):
     f1 = figure(tools='box_select', x_range=sizes, title="Counts of Allocations of Different Sizes",
                 width=width, height=500)
     f1.vbar(x='Sizes', top='Counts', source=c1, width=0.9)
-    f1.xaxis.axis_label = 'Allocation Size (bytes)'
+    f1.xaxis.axis_label = 'Allocation Size'
     f1.yaxis.axis_label = 'Count'
     f1.xgrid.grid_line_color = None
     f1.y_range.start = 0
