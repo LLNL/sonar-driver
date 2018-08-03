@@ -3,6 +3,8 @@ import plotly.graph_objs as go
 import numpy as np
 import pandas as pd
 
+from pyspark.sql.functions import col, desc
+
 from bokeh.layouts import column
 from bokeh.plotting import figure, show, output_notebook
 from bokeh.models import CustomJS, ColumnDataSource, HoverTool
@@ -67,17 +69,20 @@ def plot_integrals(sparkdf, slide_length):
     
     plot_analytics(x_axis, y_axis, plot_title=plot_title, x_title=x_title, y_title=y_title)
     
-def plot_bar_gantt(sparkdf, sizes, counts):
+def plot_allocs(sparkdf):
     """
     Plots a bar chart of total number of allocations for each allocation size and a linked gantt chart
     that groups allocations of the same size into non-overlapping pools.
     
-    :df: Spark DataFrame of allocation data
-    :sizes: List of allocation sizes
-    :counts: List of counts for each allocation size
+    :sparkdf: Spark DataFrame of allocation data
     :return: None
     """
     df = sparkdf.toPandas()
+    df['alloc_time'] = pd.to_datetime(df['alloc_time'], unit='ns')
+    df['free_time'] = pd.to_datetime(df['free_time'], unit='ns')
+    
+    alloc_counts = sparkdf.select(col('size')).groupBy('size').count().sort(desc('count')).toPandas()
+    sizes, counts = [str(s) for s in alloc_counts['size']], list(alloc_counts['count'])
     
     c0 = ColumnDataSource(data=df)
     c1 = ColumnDataSource(data=dict(Sizes=sizes, Counts=counts))
@@ -105,7 +110,7 @@ def plot_bar_gantt(sparkdf, sizes, counts):
                               Pool: @Pool<br>")
     f2.add_tools(hover)
 
-    jscode = jscode = """
+    jscode = """
         var d0 = c0.data;
         var d1 = cb_obj.data;
         var d2 = c2.data;
