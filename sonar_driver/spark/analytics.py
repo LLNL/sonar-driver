@@ -3,7 +3,7 @@ import re
 from pyspark.sql.functions import lead, lag
 from pyspark.sql.window import Window
 from pyspark.sql.functions import udf, col, explode, lit, split
-from pyspark.sql.types import BooleanType, DoubleType, StringType, TimestampType
+from pyspark.sql.types import ArrayType, BooleanType, DoubleType, IntegerType, StringType, TimestampType
 
 
 def split_dataframes(sparkdf, column):
@@ -197,19 +197,22 @@ def discrete_derivatives(sparkdf, column, window_size, slide_length):
     :param slide_length: Amount of time (secs) to slide window at each step.
     :return: A Spark dataframe with discrete derivative calculated at each timestep.
     """
-    sparkdf = cast_double(sparkdf)
+    sparkdf = timestamp_to_double(sparkdf)
             
     def range_windows(column, window, slide):
         first = int(window + slide * ((column - window) // slide + 1))
         last = int(window + slide * (column // slide))
-        return range_list(first, last, slide)
-    range_windows = udf(range_windows, StringType())
+        return [first + slide * x for x in range(0, (last - first) // slide + 1)]
+    range_windows = udf(range_windows, ArrayType(IntegerType()))
     
     return (
         sparkdf
-            .withColumn('Range', split(range_windows(col(column), lit(window_size), lit(slide_length)), ','))
+            .withColumn('Range', range_windows(col(column), lit(window_size), lit(slide_length)))
             .select(explode(col('Range')).alias('Time'))
-            .select(col('Time').cast(DoubleType()).cast(TimestampType())).groupBy('Time').count().sort('Time')
+            .select(col('Time').cast(TimestampType()))
+            .groupBy('Time')
+            .count()
+            .sort('Time')
             .withColumn('count', udf(lambda x: x / window_size, DoubleType())(col('count')))
     )
 
@@ -220,25 +223,28 @@ def discrete_integrals(sparkdf, slide_length):
     :param slide_length: Amount of time (secs) between each timestep.
     :return: A Spark dataframe with discrete integral calculated at each timestep.
     """
-    sparkdf = cast_double(sparkdf)
+    sparkdf = timestamp_to_double(sparkdf)
             
     def range_times(col1, col2, slide):
         first = int((col1 // slide + 1) * slide)
         last = int((col2 // slide) * slide)
         if first > last:
-            return ""
-        return range_list(first, last, slide)
-    range_times = udf(range_times, StringType())
+            return []
+        return [first + slide * x for x in range(0, (last - first) // slide + 1)]
+    range_times = udf(range_times, ArrayType(IntegerType()))
     
     return (
         sparkdf
-            .withColumn('Range', split(range_times(col('StartTime'), col('EndTime'), lit(slide_length)), ','))
+            .withColumn('Range', range_times(col('StartTime'), col('EndTime'), lit(slide_length)))
             .select(explode(col('Range')).alias('Time'))
-            .select(col('Time').cast(DoubleType()).cast(TimestampType())).groupBy('Time').count().sort('Time')
+            .select(col('Time').cast(TimestampType()))
+            .groupBy('Time')
+            .count()
+            .sort('Time')
             .where(col('Time').isNotNull())
     )
 
-def cast_double(sparkdf):
+def timestamp_to_double(sparkdf):
     """
     Helper function to cast columns of type 'timestamp' to type 'double.'
     """
@@ -246,15 +252,6 @@ def cast_double(sparkdf):
         if dtype[1] == 'timestamp':
             sparkdf = sparkdf.withColumn(dtype[0], col(dtype[0]).cast(DoubleType()))
     return sparkdf
-
-def range_list(first, last, slide):
-    """
-    Helper function for discrete_derivatives and discrete_integrals functions.
-    """
-    range_list = ""
-    for x in range(0, (last - first) // slide + 1):
-        range_list = range_list + str(first + slide * x) + ','
-    return range_list[:-1]
 
 def allocs_sorted(sparkdf):
     pandasdf = sparkdf.toPandas()
@@ -331,7 +328,7 @@ def max_memory_pooled(sparkdf):
     pools = pool_counts(sparkdf)
     return sum([p['size'] * p['count'] for p in pools])
 
-def total_bytesecs_unpooled(sparkdf):
+def total_bytesecs_unpooled(sparkdf, precision=1e9):
     """
     Calculate total bytesecs (1 byte of memory allocated for 1 sec) needed for an 
         unpooled allocation configuration.
@@ -343,9 +340,9 @@ def total_bytesecs_unpooled(sparkdf):
     return (
         sparkdf
             .withColumn('bytesecs', calc_bytesecs(col('size'), col('alloc_time'), col('free_time')))
-    ).rdd.map(lambda x: float(x["bytesecs"])).reduce(lambda x, y: x+y) / 1e9
+    ).rdd.map(lambda x: float(x["bytesecs"])).reduce(lambda x, y: x+y) / precision
 
-def total_bytesecs_pooled(sparkdf):
+def total_bytesecs_pooled(sparkdf, precision=1e9):
     """
     Calculate total bytesecs (1 byte of memory allocated for 1 sec) needed for a
         pooled allocation configuration.
@@ -354,8 +351,8 @@ def total_bytesecs_pooled(sparkdf):
     """
     pools = pool_counts(sparkdf)
     
-    min_time = sparkdf.agg({"alloc_time": "min"}).collect()[0][0] / 1e9
-    max_time = sparkdf.agg({"free_time": "max"}).collect()[0][0] / 1e9
+    min_time = sparkdf.agg({"alloc_time": "min"}).collect()[0][0] / precision
+    max_time = sparkdf.agg({"free_time": "max"}).collect()[0][0] / precision
     range_time = max_time - min_time
 
     return sum([p['size'] * p['count'] * range_time for p in pools])
