@@ -24,7 +24,11 @@ setup(
         'ipython',
         'findspark',
         'pyspark',
-        'pandas',
+        'pandas<0.21',
+        'pyzmq==17.0.0',
+        'plotly',
+        'bokeh',
+        'seaborn',
         'ipywidgets'
     ]
 )
