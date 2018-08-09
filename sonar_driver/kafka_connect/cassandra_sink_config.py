@@ -2,7 +2,7 @@
 Cassandra Sink Connector Configuration Class
 """
 
-from sonar_driver.connector_config import ConnectorConfig
+from sonar_driver.kafka_connect.connector_config import ConnectorConfig
 
 
 class CassandraSinkConfig(ConnectorConfig):

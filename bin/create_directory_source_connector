@@ -11,8 +11,8 @@ import tarfile
 import avro.schema
 
 from sonar_driver.print_utils import pretty_print
-from sonar_driver.connector import Connector
-from sonar_driver.sonar_directory_source_config import SonarDirectorySourceConfig, FileFormat
+from sonar_driver.kafka_connect.connector import Connector
+from sonar_driver.kafka_connect.sonar_directory_source_config import SonarDirectorySourceConfig, FileFormat
 
 
 def parse_args():

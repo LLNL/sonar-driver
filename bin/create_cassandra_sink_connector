@@ -7,8 +7,8 @@ import argparse
 import traceback
 
 from sonar_driver.print_utils import pretty_print
-from sonar_driver.connector import Connector
-from sonar_driver.cassandra_sink_config import CassandraSinkConfig
+from sonar_driver.kafka_connect.connector import Connector
+from sonar_driver.kafka_connect.cassandra_sink_config import CassandraSinkConfig
 
 
 def parse_args():

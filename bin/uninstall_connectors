@@ -6,7 +6,7 @@ import traceback
 import argparse
 
 from sonar_driver.print_utils import pretty_print
-from sonar_driver.uninstall_connectors import uninstall_connectors, uninstall_all_connectors
+from sonar_driver.kafka_connect.uninstall_connectors import uninstall_connectors, uninstall_all_connectors
 
 def parse_args():
     """ Parse arguments """

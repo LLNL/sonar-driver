@@ -6,7 +6,7 @@ import os
 import json
 from enum import Enum
 
-from sonar_driver.connector_config import ConnectorConfig
+from sonar_driver.kafka_connect.connector_config import ConnectorConfig
 
 
 class FileFormat(Enum):

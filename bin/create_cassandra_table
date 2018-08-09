@@ -9,7 +9,7 @@ import traceback
 import avro.schema
 
 from sonar_driver.print_utils import pretty_print
-from sonar_driver.cassandra_session import SonarCassandraSession
+from sonar_driver.cassandra.session import SonarCassandraSession
 
 
 def parse_args():

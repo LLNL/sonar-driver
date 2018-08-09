@@ -1,5 +1,5 @@
 from sonar_driver.print_utils import pretty_print
-from sonar_driver.kafka_connect_session import KafkaConnectSession
+from sonar_driver.kafka_connect.session import KafkaConnectSession
 
 def uninstall_connectors(
         connectors,
