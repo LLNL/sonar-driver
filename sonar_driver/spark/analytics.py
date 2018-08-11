@@ -103,9 +103,9 @@ def finite_difference(sparkdf, xaxis, yaxes, window_size, monotonically_increasi
 
 def discrete_derivatives(sparkdf, column, window_size, slide_length):
     """
-    Calculate discrete derivatives (job initiation rate or job completion rate).
+    Calculate discrete derivatives for column variable.
     :param sparkdf: Input Spark dataframe.
-    :param column: 'StartTime' for initiation rate and 'EndTime' for completion rate.
+    :param column: Variable for which to calculate discrete derivative.
     :param window_size: Time range (secs) over which to calculate derivatives.
     :param slide_length: Amount of time (secs) to slide window at each step.
     :return: A Spark dataframe with discrete derivative calculated at each timestep.
@@ -120,19 +120,21 @@ def discrete_derivatives(sparkdf, column, window_size, slide_length):
     
     return (
         sparkdf
-            .withColumn('Range', range_windows(col(column), lit(window_size), lit(slide_length)))
-            .select(explode(col('Range')).alias('Time'))
-            .select(col('Time').cast(TimestampType()))
-            .groupBy('Time')
+            .withColumn('range', range_windows(col(column), lit(window_size), lit(slide_length)))
+            .select(explode(col('range')).alias('time'))
+            .select(col('time').cast(TimestampType()))
+            .groupBy('time')
             .count()
-            .sort('Time')
+            .sort('time')
             .withColumn('count', udf(lambda x: x / window_size, DoubleType())(col('count')))
     )
 
-def discrete_integrals(sparkdf, slide_length):
+def discrete_integrals(sparkdf, start_column, end_column, slide_length):
     """
     Calculate discrete integrals (number of active jobs vs. time).
     :param sparkdf: Input Spark dataframe.
+    :param start_column: Start time column name.
+    :param end_column: End time column name.
     :param slide_length: Amount of time (secs) between each timestep.
     :return: A Spark dataframe with discrete integral calculated at each timestep.
     """
@@ -148,43 +150,51 @@ def discrete_integrals(sparkdf, slide_length):
     
     return (
         sparkdf
-            .withColumn('Range', range_times(col('StartTime'), col('EndTime'), lit(slide_length)))
-            .select(explode(col('Range')).alias('Time'))
-            .select(col('Time').cast(TimestampType()))
-            .groupBy('Time')
+            .withColumn('range', range_times(col(start_column), col(end_column), lit(slide_length)))
+            .select(explode(col('range')).alias('time'))
+            .select(col('time').cast(TimestampType()))
+            .groupBy('time')
             .count()
-            .sort('Time')
-            .where(col('Time').isNotNull())
+            .sort('time')
+            .where(col('time').isNotNull())
     )
 
 def timestamp_to_double(sparkdf):
     """
-    Helper function to cast columns of type 'timestamp' to type 'double.'
+    Utility function to cast columns of type 'timestamp' to type 'double.'
     """
     for dtype in sparkdf.dtypes:
         if dtype[1] == 'timestamp':
             sparkdf = sparkdf.withColumn(dtype[0], col(dtype[0]).cast(DoubleType()))
     return sparkdf
 
-def allocs_sorted(sparkdf):
+def sorted_dicts(sparkdf, start_column, end_column, var):
+    """
+    Utility function to create sorted dicts for pool function.
+    """
     pandasdf = sparkdf.toPandas()
     
-    starts_dict = dict(zip(pandasdf['alloc_time'], pandasdf['size']))
-    ends_dict = dict(zip(pandasdf['free_time'], pandasdf['size']))
+    starts_dict = dict(zip(pandasdf[start_column], pandasdf[var]))
+    ends_dict = dict(zip(pandasdf[end_column], pandasdf[var]))
     starts_sorted = sorted(starts_dict)
     ends_sorted = sorted(ends_dict)
     
     return starts_dict, ends_dict, starts_sorted, ends_sorted
 
-def pool_counts(sparkdf):
+def pool(sparkdf, start_column, end_column, var):
     """
-    Calculate minimum pools for each unique allocation size.
+    Generate pools and calculate maximum var unpooled.
     :param sparkdf: Input Spark dataframe.
-    :return: A list of dicts with size and count of each pool.
+    :param start_column: Start time column name.
+    :param end_column: End time column name.
+    :param var: Variable for which to calculate metric.
+    :return: A Spark dataframe with pools (sizes and counts).
+    :return: Maximum active metric for var.
     """
-    starts_dict, ends_dict, starts_sorted, ends_sorted = allocs_sorted(sparkdf)
-
-    size_groups = {s:{'current': 0, 'max': 0} for s in [r.size for r in sparkdf.select('size').distinct().collect()]}
+    starts_dict, ends_dict, starts_sorted, ends_sorted = sorted_dicts(sparkdf, start_column, end_column, var)
+    
+    size_groups = {s:{'current': 0, 'max': 0} for s in [r.size for r in sparkdf.select(var).distinct().collect()]}
+    active = {'current': 0, 'max': 0}
     
     start_index, end_index = 0, 0
     while start_index < len(starts_sorted) or end_index < len(ends_sorted):
@@ -195,80 +205,27 @@ def pool_counts(sparkdf):
         if start is None or start > end:
             group = size_groups[ends_dict[end]]
             group['current'] -= 1
+            
+            active['current'] -= ends_dict[end]
+            
             end_index += 1
         else:
             group = size_groups[starts_dict[start]]
             group['current'] += 1
             if group['current'] > group['max']:
                 group['max'] = group['current']
+                
+            active['current'] += starts_dict[start]
+            if active['current'] > active['max']:
+                active['max'] = active['current']
+                
             start_index += 1
     
-    return [{'size': int(s), 'count': int(size_groups[s]['max'])} for s in size_groups.keys()]
+    pool_counts = [{var: int(s), 'count': int(size_groups[s]['max'])} for s in size_groups.keys()]
+    max_unpooled = active['max']
     
-def max_memory_unpooled(sparkdf):
-    """
-    Calculate maximum active memory needed for an unpooled allocation configuration.
-    :param sparkdf: Input Spark dataframe.
-    :return: Float of maximum active memory for unpooled allocations.
-    """
-    starts_dict, ends_dict, starts_sorted, ends_sorted = allocs_sorted(sparkdf)
-    
-    active_memory = {'current': 0, 'max': 0}
-    
-    start_index, end_index = 0, 0
-    while start_index < len(starts_sorted) or end_index < len(ends_sorted):
-        start, end = None, ends_sorted[end_index]
-        if start_index < len(starts_sorted):
-            start = starts_sorted[start_index]
+    return pool_counts, max_unpooled
 
-        if start is None or start > end:
-            active_memory['current'] -= ends_dict[end]
-            end_index += 1
-        else:
-            active_memory['current'] += starts_dict[start]
-            if active_memory['current'] > active_memory['max']:
-                active_memory['max'] = active_memory['current']
-            start_index += 1
-
-    return active_memory['max']
-
-def max_memory_pooled(sparkdf):
-    """
-    Calculate maximum active memory needed for a pooled allocation configuration.
-    :param sparkdf: Input Spark dataframe.
-    :return: Float of maximum active memory for pooled allocations.
-    """
-    pools = pool_counts(sparkdf)
-    return sum([p['size'] * p['count'] for p in pools])
-
-def total_bytesecs_unpooled(sparkdf, precision=1e9):
-    """
-    Calculate total bytesecs (1 byte of memory allocated for 1 sec) needed for an 
-        unpooled allocation configuration.
-    :param sparkdf: Input Spark dataframe.
-    :return: Float of total bytesecs for unpooled allocations.
-    """
-    calc_bytesecs = udf(lambda size, alloc, free: size * (free - alloc), DoubleType())
-
-    return (
-        sparkdf
-            .withColumn('bytesecs', calc_bytesecs(col('size'), col('alloc_time'), col('free_time')))
-    ).rdd.map(lambda x: float(x["bytesecs"])).reduce(lambda x, y: x+y) / precision
-
-def total_bytesecs_pooled(sparkdf, precision=1e9):
-    """
-    Calculate total bytesecs (1 byte of memory allocated for 1 sec) needed for a
-        pooled allocation configuration.
-    :param sparkdf: Input Spark dataframe.
-    :return: Float of total bytesecs for pooled allocations.
-    """
-    pools = pool_counts(sparkdf)
-    
-    min_time = sparkdf.agg({"alloc_time": "min"}).collect()[0][0] / precision
-    max_time = sparkdf.agg({"free_time": "max"}).collect()[0][0] / precision
-    range_time = max_time - min_time
-
-    return sum([p['size'] * p['count'] * range_time for p in pools])
 
     
     
