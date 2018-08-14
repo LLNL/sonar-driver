@@ -27,13 +27,11 @@ Assuming you cloned this repo into location SONAR_DRIVER_HOME
 
 Or, build components separately using:
 
-1. Run `make` to create the necessary python virtualenv for this project.
+1. Run `make` to create the necessary python virtualenv for this project and pip install it into the virtualenv.
 
 2. Invoke the virtual environment with `source ${SONAR_DRIVER_HOME}/venv/bin/activate`
 
-3. Run `make sonar-driver` to install the project into the current `PYTHONPATH`.
-
-4. Add `${SONAR_DRIVER_HOME}/bin` to `PATH` to run commands anywhere
+3. Add `${SONAR_DRIVER_HOME}/bin` to `PATH` to run commands anywhere
 
 # Running
 
