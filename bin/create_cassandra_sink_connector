@@ -30,7 +30,7 @@ def parse_args():
             help="Cassandra username to ingest with (REQUIRED)")
     parser.add_argument('-p', '--cassandra-password-file', required=True,
             help="Cassandra password file to authenticate with (REQUIRED)")
-    parser.add_argument('-d', '--delete-sunk-kafka-records', action="store_true",
+    parser.add_argument('-ds', '--delete-sunk-kafka-records', action="store_true",
                         help="Whether to delete Kafka records after they are sunk into Cassandra")
 
     parser.add_argument('topic', help="topic to consume from")

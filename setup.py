@@ -18,7 +18,7 @@ setup(
     license=license,
     packages=find_packages(exclude=('tests', 'docs')),
     install_requires=[
-        'avro-python3==1.8.0',
+        'avro-python3',
         'cassandra-driver',
         'requests',
         'pygments',
@@ -30,6 +30,7 @@ setup(
         'plotly',
         'bokeh',
         'seaborn',
-        'ipywidgets'
+        'ipywidgets',
+        'sh'
     ]
 )
