@@ -11,4 +11,4 @@ venv: setup.py $(PYFILES)
 
 sonar-driver: venv
 	source ./venv/bin/activate \
-		&& pip install --upgrade --force-reinstall -e `pwd`
+		&& pip install --upgrade -e `pwd`
