@@ -32,7 +32,7 @@ Note that the field ordering matters because it dictates the indices of the fiel
 Avro schemas may be provided to Sonar connectors in two ways:
 
 1. By creating an Avro schema file like the one above and specifying the filename in the connector 
-configuration option "avro.schema.file", e.g. in the `avro_schema_file` in `create_directory_source_connector`.
+configuration option "avro.schema.file", e.g. in the `avro_schema_file` parameter in the `create_directory_source_connector` script.
 2. By providing the Avro as a string to the connector configuration option "avro.schema", taking care to 
 escape quotes properly.
 
