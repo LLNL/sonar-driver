@@ -1,12 +1,15 @@
 PYTHON=/bin/python3.4
 
-venv/: requirements.txt
+PYFILES := $(shell find . -name resource\*.png -print)
+
+all: sonar-driver
+
+venv: setup.py $(PYFILES)
 	${PYTHON} -m venv venv/
 	source ./venv/bin/activate \
-		&& pip install --upgrade pip \
-		&& pip install -r requirements.txt
+		&& pip install --upgrade pip
 
-install: venv/ README.md LICENSE setup.py sonar_driver/*.py
+sonar-driver: venv
 	source ./venv/bin/activate \
-		&& pip install --upgrade --force-reinstall `pwd`
+		&& pip install --upgrade --force-reinstall -e `pwd`
 

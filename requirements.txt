@@ -1,8 +1,0 @@
-cassandra-driver
-requests
-pygments
-ipython
-findspark
-pyspark
-pandas
-ipywidgets
