@@ -23,11 +23,15 @@ Python library dependencies will be automatically collected from [requirements.t
 
 Assuming you cloned this repo into location SONAR_DRIVER_HOME
 
+1-step install: `source install.sourceme`
+
+Or, build components separately using:
+
 1. Run `make` to create the necessary python virtualenv for this project.
 
 2. Invoke the virtual environment with `source ${SONAR_DRIVER_HOME}/venv/bin/activate`
 
-3. Run `make install` to install the project into the current `PYTHONPATH`.
+3. Run `make sonar-driver` to install the project into the current `PYTHONPATH`.
 
 4. Add `${SONAR_DRIVER_HOME}/bin` to `PATH` to run commands anywhere
 
