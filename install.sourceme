@@ -11,6 +11,6 @@ else
     exit 1
 fi
 
-make install
+make sonar-driver
 source ./venv/bin/activate
 export PATH=$(pwd)/bin:$PATH
