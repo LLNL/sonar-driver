@@ -112,7 +112,7 @@ def main():
             for f in range(args.num_files):
                 with open(os.path.join(args.completed_dir, "file_{:04d}".format(f)), "w") as file:
                     for n in range(args.rows_per_file):
-                        file.write('{"id": {}, "str": "{}"}\n'.format(counter, counter))
+                        file.write('{{ "id": {}, "str": "{}" }}\n'.format(counter, counter))
                         counter = counter + 1
 
         # Create directory source
