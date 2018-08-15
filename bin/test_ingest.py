@@ -80,7 +80,7 @@ def main():
 
     try:
 
-        topic_name = 'test-' + str(time.time())
+        topic_name = 'test-' + str(int(time.time()))
 
         avro_schema = avro.schema.Parse("""
             {
@@ -110,7 +110,7 @@ def main():
             # Write test data
             counter = 1
             for f in range(args.num_files):
-                with open(os.path.join(args.completed_dir, "file_{:04d}".format(f)), "w") as file:
+                with open(os.path.join(args.ingest_dir, "file_{:04d}".format(f)), "w") as file:
                     for n in range(args.rows_per_file):
                         file.write('{{ "id": {}, "str": "{}" }}\n'.format(counter, counter))
                         counter = counter + 1
