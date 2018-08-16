@@ -2,6 +2,7 @@
 
 import os
 import sys
+import json
 import time
 import argparse
 import traceback
@@ -43,6 +44,8 @@ def parse_args():
                         help="ZooKeeper host to connect to (default: value of ZOOKEEPER_HOST or 'localhost')")
     parser.add_argument('-zp', '--zookeeper-port', default=os.environ.get("ZOOKEEPER_PORT", "2181"), required=False,
                         help="ZooKeeper port to connect to (default: value of ZOOKEEPER_PORT or 2181)")
+    parser.add_argument('-ha', '--columns-from-avro', action="store_true", required=False,
+                        help="Whether to generate the list of columns from the Avro schema and add them into format.options (CSV only)")
 
     parser.add_argument('ingest_dir', help="directory to use as ingestion point")
     parser.add_argument('completed_dir', help="directory to move ingested files into")
@@ -76,6 +79,12 @@ def main():
         # Create unique topic if none specified
         if args.topic_name is None:
             args.topic_name = "t" + str(float(time.time())) + "-h" + str(hash(os.path.abspath(args.ingest_dir)))
+
+        # Create the header if specified
+        if args.file_format == "csv" and args.columns_from_avro:
+            format_options = json.loads(args.format_options)
+            format_options['columns'] = list(map(lambda field: field.name, avro_schema.fields))
+            args.format_options = json.dumps(format_options)
 
         # Create the connector
         directory_source = Connector(
