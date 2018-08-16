@@ -29,9 +29,9 @@ def parse_args():
                         help="Directory source to ingest from")
     parser.add_argument('-o', '--completed-dir', default='/usr/global/tools/lcmon/tmp/testdir_out', required=False,
                         help="Directory to write ingested files into")
-    parser.add_argument('-N', '--num-files', default=100, required=False,
+    parser.add_argument('-N', '--num-files', default=100, required=False, type=int,
                         help="Number of files to ingest")
-    parser.add_argument('-n', '--rows-per-file', default=1000, required=False,
+    parser.add_argument('-n', '--rows-per-file', default=1000, required=False, type=int,
                         help="Number of rows in each file to ingest")
     parser.add_argument('-dT', '--directory-source-tasks', default="1", required=False,
                         help="Maximum number of concurrent directory source tasks")
