@@ -2,3 +2,5 @@ venv/
 
 *.pyc
 .idea/
+
+sonar_driver.egg-info/
