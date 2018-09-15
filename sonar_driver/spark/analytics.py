@@ -24,13 +24,14 @@ def split_dataframes(sparkdf, column):
     ]
 
 
-def finite_difference(sparkdf, xaxis, yaxes, window_size, monotonically_increasing=False):
+def finite_difference(sparkdf, xaxis, yaxes, window_size, partitionAxis=None, monotonically_increasing=False):
     """
     Calculate the finite difference dY/dX for 1 or more Y=f(X) axes with respect to a single X axis
     :param sparkdf: Input Spark dataframe.
     :param xaxis: Column name for X axis.
     :param yaxes: List of column names for Y axes.
     :param window_size: Width of window over which to calculate finite difference (in number of points).
+    :param partitionAxis: Categorical axis to partition
     :param monotonically_increasing: Whether Y axes should be monotonically increasing (e.g. counters). If set,
            negative finite differences in Y will be set to zero.
     :return: A Spark dataframe with one new column per Y axis calculated as dY/dX.
@@ -44,6 +45,8 @@ def finite_difference(sparkdf, xaxis, yaxes, window_size, monotonically_increasi
 
     # Slide over this window
     window = Window.orderBy(xaxis)
+    if partitionAxis is not None:
+        window = window.partitionBy(partitionAxis)
 
     # Create function to calculate difference between two columns
     delta_fn = udf(lambda col1, col2: col1 - col2, DoubleType())
