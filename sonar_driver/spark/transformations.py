@@ -50,10 +50,11 @@ extract_runtime_udf = udf(extract_runtime, StringType())
 
 nltk.download('words')
 english_words = words.words()
+salt = str(random.SystemRandom().random())
 
 
-def anonymize(str):
-    random.seed(str)
+def anonymize(s):
+    random.seed(str(s) + salt)
     return random.choice(english_words)
 
 
