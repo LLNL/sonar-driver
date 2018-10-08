@@ -2,6 +2,9 @@ from pyspark.sql.functions import udf
 from pyspark.sql.types import StringType
 
 import re
+import random
+import nltk
+from nltk.corpus import words
 
 
 def extract_nodelist(nodelist_str):
@@ -43,3 +46,15 @@ def extract_runtime(runtime_str):
 
 
 extract_runtime_udf = udf(extract_runtime, StringType())
+
+
+nltk.download('words')
+english_words = words.words()
+
+
+def anonymize(str):
+    random.seed(str)
+    return random.choice(english_words)
+
+
+anonymize_udf = udf(anonymize, StringType())

@@ -31,6 +31,7 @@ setup(
         'bokeh',
         'seaborn',
         'ipywidgets',
-        'sh'
+        'sh',
+        'nltk'
     ]
 )
