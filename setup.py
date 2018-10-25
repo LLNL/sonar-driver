@@ -17,9 +17,11 @@ setup(
     url='https://lc.llnl.gov/bitbucket/projects/SON/repos/sonar-driver',
     license=license,
     packages=find_packages(exclude=('tests', 'docs')),
+    include_package_data=True,
     install_requires=[
         'avro-python3',
         'cassandra-driver',
+        'click',
         'requests',
         'pygments',
         'ipython',
@@ -33,5 +35,9 @@ setup(
         'ipywidgets',
         'sh',
         'nltk'
-    ]
+    ],
+    entry_points='''
+        [console_scripts]
+        sonar_driver=sonar_driver.sonar_driver:cli
+    ''',
 )
