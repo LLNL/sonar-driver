@@ -38,6 +38,6 @@ setup(
     ],
     entry_points='''
         [console_scripts]
-        sonar_driver=sonar_driver.sonar_driver:cli
+        sonar-driver=sonar_driver.sonar_driver:cli
     ''',
 )
