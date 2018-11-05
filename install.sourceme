@@ -13,4 +13,4 @@ fi
 
 make sonar-driver
 source ./venv/bin/activate
-export PATH=$(pwd)/bin:$PATH
+source ./bin/setup_env.sh

@@ -13,11 +13,11 @@ then
     export CQLSH_PORT=9042
 elif [[ "${CLUSTER}" == sonar ]]
 then
-    export KAFKA_REST_URL=http://sonar1
+    export KAFKA_REST_URL=http://sonar2
     export KAFKA_CONNECT_PORT=8083
     export KAFKA_SCHEMA_REGISTRY_PORT=8085
-    export ZOOKEEPER_HOST=sonar1
+    export ZOOKEEPER_HOST=sonar2
     export ZOOKEEPER_PORT=2181
-    export CQLSH_HOST=sonar1
+    export CQLSH_HOST=sonar2
     export CQLSH_PORT=9042
 fi
