@@ -28,7 +28,6 @@ setup(
         'findspark',
         'pyspark',
         'pandas<0.21',
-        'pyzmq==17.0.0',
         'plotly',
         'bokeh',
         'seaborn',
