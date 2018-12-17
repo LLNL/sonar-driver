@@ -46,7 +46,7 @@ def kafka_connect(ctx,
 def start_service(cmd, logfile, *args):
     with open(logfile, 'w') as logfile_out:
         with open(cmd + '.pid', 'w') as pidfile_out:
-            proc = subprocess.Popen([cmd, *args], stdout=logfile_out, stderr=subprocess.STDOUT, preexec_fn=os.setpgrp)
+            proc = subprocess.Popen([cmd] + list(args), stdout=logfile_out, stderr=subprocess.STDOUT, preexec_fn=os.setpgrp)
             pidfile_out.write(str(proc.pid))
             subprocess.Popen(['ps', 'aux', str(proc.pid)]).wait()
 
