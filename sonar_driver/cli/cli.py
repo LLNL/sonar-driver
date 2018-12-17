@@ -16,5 +16,8 @@ def cli(ctx, debug, dry):
     ctx.obj['DRY'] = dry
 
 
+from sonar_driver.cli.service.service import service
+
+cli.add_command(service)
 cli.add_command(kafka_connect)
 cli.add_command(cassandra)
