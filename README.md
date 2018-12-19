@@ -45,3 +45,20 @@ CQLSH_PORT          # e.g. 9042
 ZOOKEEPER_HOST      # e.g. sonar8
 ZOOKEEPER_PORT      # e.g. 2181
 ```
+
+License
+----------------
+
+sonar-driver is distributed under the terms of both the MIT license and the
+Apache License (Version 2.0). Users may choose either license, at their
+option.
+
+All new contributions must be made under both the MIT and Apache-2.0
+licenses.
+
+See [LICENSE-MIT](https://github.com/LLNL/sonar-driver/blob/master/LICENSE-MIT),
+[LICENSE-APACHE](https://github.com/LLNL/sonar-driver/blob/master/LICENSE-APACHE),
+[COPYRIGHT](https://github.com/LLNL/sonar-driver/blob/master/COPYRIGHT), and
+[NOTICE](https://github.com/LLNL/sonar-driver/blob/master/NOTICE) for details.
+
+``LLNL-CODE-763876``
