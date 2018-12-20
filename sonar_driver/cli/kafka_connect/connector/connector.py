@@ -62,7 +62,7 @@ def status(ctx, connector_names, a):
     for connector_name in ctx.obj['KafkaConnectors']:
         ret = ctx.obj['KafkaConnectSession'].get_connector_status(connector_name)
         if not ctx.obj['DRY']:
-            statuses.append(ret.json)
+            statuses.append(ret.json())
     pretty_print(statuses)
 
 
